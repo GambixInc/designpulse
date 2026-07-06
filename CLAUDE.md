@@ -7,7 +7,8 @@ Two-sided digital asset marketplace by Gambix selling design templates (Wix Stud
 ## Live infrastructure
 
 - **Production:** https://designpulse-seven.vercel.app
-- **Vercel:** project `designpulse`, team `gambix1` (Gambix). Linked via `.vercel/project.json`. Deploy: `npx vercel deploy --prod --yes` (CLI logged in as `gambixteam` on this machine).
+- **GitHub:** https://github.com/GambixInc/designpulse (public), connected to Vercel — pushing `main` auto-deploys to production. `gh` CLI authed as `Gambixteam` on this machine (scopes: repo, read:org); git push uses gh's credential helper.
+- **Vercel:** project `designpulse`, team `gambix1` (Gambix). Linked via `.vercel/project.json`. Preferred deploy: `git push` (CI from GitHub). Manual fallback: `npx vercel deploy --prod --yes` (CLI logged in as `gambixteam`).
 - **Supabase:** project `designpulse`, ref `lrebfcfrkobpjgwdvauq`, org `Gambix` (`nanuudiyoajywcfzsdnr`), region us-east-1, free tier. URL: https://lrebfcfrkobpjgwdvauq.supabase.co
 - Supabase URL + anon key are hardcoded fallbacks in `src/lib/supabase/config.ts` (public by design, RLS enforces access). Env overrides: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 - **No service-role key is used anywhere.** All privileged operations are Postgres `security definer` RPCs. Keep it that way unless there's a strong reason.
