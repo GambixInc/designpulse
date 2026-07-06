@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 const DEMO_ACCOUNTS = [
   { label: "Demo buyer", email: "buyer@designpulse.demo", hint: "Browse, buy, download" },
   { label: "Demo seller", email: "seller@designpulse.demo", hint: "Upload & track sales" },
-  { label: "Demo admin", email: "admin@designpulse.demo", hint: "Review queue & analytics" },
+  { label: "Demo reviewer", email: "reviewer@designpulse.demo", hint: "Review desk & refund tickets" },
+  { label: "Demo admin", email: "admin@designpulse.demo", hint: "Sellers, catalog & analytics" },
 ];
 const DEMO_PASSWORD = "designpulse-demo";
 
@@ -56,10 +57,10 @@ function LoginForm() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-16">
-      <h1 className="text-3xl font-bold text-white text-center">
+      <h1 className="text-3xl font-bold text-ink text-center">
         {mode === "signin" ? "Welcome back" : "Create your account"}
       </h1>
-      <p className="text-center text-slate-400 text-sm mt-2 mb-8">
+      <p className="text-center text-muted text-sm mt-2 mb-8">
         {mode === "signin"
           ? "Sign in to access your library and licenses."
           : "Join DesignPulse to buy and sell premium design assets."}
@@ -80,16 +81,16 @@ function LoginForm() {
           <label className="label">Password</label>
           <input type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
         </div>
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        {notice && <p className="text-sm text-emerald-400">{notice}</p>}
+        {error && <p className="text-sm text-red-500">{error}</p>}
+        {notice && <p className="text-sm text-emerald-500">{notice}</p>}
         <button disabled={busy} className="btn-primary w-full py-2.5">
           {busy ? "Working…" : mode === "signin" ? "Sign in" : "Sign up"}
         </button>
-        <p className="text-center text-sm text-slate-500">
+        <p className="text-center text-sm text-faint">
           {mode === "signin" ? "No account?" : "Already registered?"}{" "}
           <button
             type="button"
-            className="text-pulse-400 hover:underline"
+            className="text-accent hover:underline"
             onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
           >
             {mode === "signin" ? "Sign up" : "Sign in"}
@@ -98,7 +99,7 @@ function LoginForm() {
       </form>
 
       <div className="mt-6">
-        <p className="text-center text-xs uppercase tracking-widest text-slate-600 mb-3">
+        <p className="text-center text-xs uppercase tracking-widest text-faint mb-3">
           Or explore with a demo account
         </p>
         <div className="grid gap-2">
@@ -110,7 +111,7 @@ function LoginForm() {
               className="btn-ghost justify-between"
             >
               <span>{d.label}</span>
-              <span className="text-xs text-slate-500">{d.hint}</span>
+              <span className="text-xs text-faint">{d.hint}</span>
             </button>
           ))}
         </div>

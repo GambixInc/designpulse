@@ -2,7 +2,7 @@
 
 Two-sided digital asset marketplace by Gambix selling design templates (Wix Studio, Webflow, WordPress, Shopify) and Go High Level snapshots. Gambix seeds first-party assets; vetted third-party sellers pay a flat 15% commission. Full requirements: `docs/PRD.md`.
 
-**Status:** Working MVP, deployed to production. This codebase was built in a Cowork session on 2026-07-03/04; this file is the complete handoff context.
+**Status:** Working MVP, deployed to production. Built in a Cowork session on 2026-07-03/04; extended on 2026-07-05 with the Framer-inspired design system (light default + dark toggle), the in-house review team module (reviewer role, 5-criterion rubric, staff-only audit log, /review desk), the hardened 7-day refund window (system-enforced via `request_refund`, change-of-mind auto-flag, proof uploads to the `refund-proofs` bucket, automatic commission/payout reversal, `seller_refund_metrics` view), the mandatory GHL OAuth checkout gate (`ghl_connections`, `ghl_imports`, conflict check before import confirm), per-platform delivery connector flows, and a seeded catalog of 16 first-party assets per launch category. This file is the complete handoff context.
 
 ## Live infrastructure
 
@@ -14,9 +14,11 @@ Two-sided digital asset marketplace by Gambix selling design templates (Wix Stud
 
 ## Demo accounts (password: `designpulse-demo`)
 
-- `buyer@designpulse.demo` — buyer with 2 purchases
-- `seller@designpulse.demo` — approved seller "PixelForge Studio" (1 approved asset, 1 pending submission)
-- `admin@designpulse.demo` — Gambix admin
+- `buyer@designpulse.demo` — buyer with purchases (incl. an imported GHL snapshot + a resolved refund)
+- `seller@designpulse.demo` — approved seller "PixelForge Studio"
+- `reviewer@designpulse.demo` — in-house reviewer "Riley Chen" (role `reviewer`: /review desk only, no admin)
+- `admin@designpulse.demo` — Gambix admin (also has review-desk access)
+- Direct-SQL demo users need the auth.users string token columns set to `''` (not NULL) or GoTrue sign-in 500s — bit us with the reviewer account.
 - Signup with `gambixa@gmail.com` auto-grants admin (see `handle_new_user` trigger).
 - Demo users were created via direct SQL inserts into `auth.users`/`auth.identities` (email-confirmed). Real signups go through Supabase email confirmation.
 
@@ -48,9 +50,16 @@ Migrations were applied via the Supabase MCP (`designpulse_core_schema`, `design
 - `src/app/dashboard/page.tsx` — buyer library: downloads, license keys, reviews, refunds, simulated GHL import modal (PRD §8 flow)
 - `src/app/api/download/[token]/route.ts` — validates token via RPC, streams generated placeholder ZIP
 - `src/app/sell/page.tsx` (application), `sell/dashboard/page.tsx` (analytics, submissions), `sell/upload/page.tsx` (upload → `submit_asset`)
-- `src/app/admin/page.tsx` — review queue, seller tiers, refunds, catalog/featured, GMV stats
+- `src/app/admin/page.tsx` — seller tiers (+ refund-rate flags), refund queue, catalog/featured, GMV stats; Layer 2 review lives on the review desk
+- `src/app/review/page.tsx` — reviewer/admin-only desk: submission queue with business-day SLA badges, 5-criterion rubric, seller feedback vs. staff-only internal notes, refund tickets, audit log
+- `src/app/licenses/page.tsx` — Standard/Extended comparison + refund policy
+- `src/components/DeliveryModal.tsx` — per-platform install connectors (Wix guided, Webflow clone link, WP demo importer, Shopify OAuth sim)
+- `src/components/GhlImportFlow.tsx` — conflict check → confirm → snapshot push (RPCs: `run_ghl_conflict_check`, `confirm_ghl_import`)
+- `src/components/RefundModal.tsx` — structured refund ticket (reason dropdown, proof upload, `request_refund` RPC)
 - `src/app/login/page.tsx` — email/password + one-click demo accounts
 - `middleware.ts` — Supabase session refresh (excludes `/api/download`)
+
+New RPCs (2026-07-05): `request_refund`, `connect_ghl_account`, `run_ghl_conflict_check`, `confirm_ghl_import`, `is_reviewer`, `log_review_action` (internal-only; EXECUTE revoked from anon/authenticated). `checkout` now takes `p_ghl_connection_id` and refuses GHL items without it. `review_submission` takes `p_internal_note` (stored only in the staff-only `review_audit_log`). Design tokens are CSS variables in `globals.css` (light `:root` / `.dark`), mapped in `tailwind.config.ts` — use `ink/muted/faint/line/card/canvas/accent`, never raw slate/ink-950 classes.
 
 ## Known stubs / production TODOs (in priority order)
 

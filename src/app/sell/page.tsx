@@ -59,8 +59,8 @@ export default function SellPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-14">
       <div className="text-center mb-10">
-        <h1 className="text-4xl font-bold text-white">Sell on DesignPulse</h1>
-        <p className="mt-3 text-slate-400 max-w-xl mx-auto">
+        <h1 className="text-4xl font-bold text-ink">Sell on DesignPulse</h1>
+        <p className="mt-3 text-muted max-w-xl mx-auto">
           Keep 85% of every sale — flat 15% commission, paid out via Stripe
           Express. Quality review in 3–5 business days. Trusted sellers get
           expedited review; exclusive sellers earn reduced commission.
@@ -74,23 +74,23 @@ export default function SellPage() {
           ["3. Start earning", "Stripe Express handles KYC and payouts (7–14 day rolling)."],
         ].map(([t, d]) => (
           <div key={t} className="card p-4">
-            <p className="font-semibold text-white">{t}</p>
-            <p className="text-slate-400 mt-1">{d}</p>
+            <p className="font-semibold text-ink">{t}</p>
+            <p className="text-muted mt-1">{d}</p>
           </div>
         ))}
       </div>
 
       {signedIn === false && (
         <div className="card p-8 text-center">
-          <p className="text-slate-300 mb-4">Sign in to start your seller application.</p>
+          <p className="text-muted mb-4">Sign in to start your seller application.</p>
           <a href="/login?next=/sell" className="btn-primary">Sign in</a>
         </div>
       )}
 
       {signedIn && existing && existing.application_status === "pending" && !done && (
         <div className="card p-8 text-center">
-          <p className="text-amber-400 font-medium">Application under review</p>
-          <p className="text-slate-400 text-sm mt-2">
+          <p className="text-amber-500 font-medium">Application under review</p>
+          <p className="text-muted text-sm mt-2">
             We review applications within 3–5 business days. You'll get seller
             access as soon as you're approved.
           </p>
@@ -99,8 +99,8 @@ export default function SellPage() {
 
       {done && (
         <div className="card p-8 text-center">
-          <p className="text-emerald-400 font-medium">Application submitted ✓</p>
-          <p className="text-slate-400 text-sm mt-2">
+          <p className="text-emerald-500 font-medium">Application submitted ✓</p>
+          <p className="text-muted text-sm mt-2">
             Next step in production: Stripe Express onboarding (identity + bank
             details, handled by Stripe). Our team will review within 3–5 business days.
           </p>
@@ -109,7 +109,7 @@ export default function SellPage() {
 
       {signedIn && !existing && !done && (
         <form onSubmit={apply} className="card p-6 space-y-4">
-          <h2 className="font-semibold text-white">Seller application</h2>
+          <h2 className="font-semibold text-ink">Seller application</h2>
           <div>
             <label className="label">Store / display name</label>
             <input className="input" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
@@ -130,14 +130,14 @@ export default function SellPage() {
                   type="button"
                   key={key}
                   onClick={() => toggle(key)}
-                  className={`badge cursor-pointer ${specialties.includes(key) ? "border-pulse-500 text-pulse-400" : "border-ink-600 text-slate-400"}`}
+                  className={`badge cursor-pointer ${specialties.includes(key) ? "border-accent text-accent" : "border-line text-muted"}`}
                 >
                   {meta.label}
                 </button>
               ))}
             </div>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-faint">
             Business/tax info + identity verification are collected by Stripe
             Express during onboarding (not stored by DesignPulse).
           </p>

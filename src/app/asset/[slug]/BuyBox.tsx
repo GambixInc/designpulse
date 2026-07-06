@@ -55,17 +55,17 @@ export default function BuyBox({
 
   return (
     <div className="card p-5 sticky top-24">
-      <h2 className="font-semibold text-white mb-4">Choose a license</h2>
+      <h2 className="font-semibold text-ink mb-4">Choose a license</h2>
       <div className="space-y-3">
         {sorted.map((l) => {
           const info = LICENSE_INFO[l.tier];
           return (
             <label
               key={l.id}
-              className={`block cursor-pointer rounded-lg border p-4 transition-colors ${
+              className={`block cursor-pointer rounded-xl border p-4 transition-colors ${
                 selected === l.id
-                  ? "border-pulse-500 bg-pulse-600/10"
-                  : "border-ink-600 hover:border-ink-500"
+                  ? "border-accent bg-accent-soft/60"
+                  : "border-line hover:border-faint"
               }`}
             >
               <input
@@ -75,10 +75,10 @@ export default function BuyBox({
                 onChange={() => setSelected(l.id)}
               />
               <div className="flex items-center justify-between">
-                <span className="font-medium text-white">{info.label}</span>
-                <span className="text-pulse-400 font-bold">{money(l.price_cents)}</span>
+                <span className="font-medium text-ink">{info.label}</span>
+                <span className="text-ink font-bold">{money(l.price_cents)}</span>
               </div>
-              <p className="mt-1 text-xs text-slate-400">{info.desc}</p>
+              <p className="mt-1 text-xs text-muted">{info.desc}</p>
             </label>
           );
         })}
@@ -93,11 +93,14 @@ export default function BuyBox({
       >
         {wished ? "♥ In wishlist" : "♡ Add to wishlist"}
       </button>
-      <ul className="mt-4 space-y-1.5 text-xs text-slate-500">
+      <ul className="mt-4 space-y-1.5 text-xs text-faint">
         {isGhl ? (
-          <li>⚡ One-click import into your GHL sub-account after purchase</li>
+          <>
+            <li>⚡ Pushed into your GHL sub-account via the Snapshot API</li>
+            <li>🔗 GHL OAuth connection required at checkout</li>
+          </>
         ) : (
-          <li>⬇ Instant download via secure 72-hour tokenized link</li>
+          <li>⬇ Instant delivery via secure 72-hour tokenized link</li>
         )}
         <li>🔑 Unique license key issued per purchase</li>
         <li>↩ 7-day refund window for verifiable technical defects</li>

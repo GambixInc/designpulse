@@ -1,28 +1,31 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { money, dateFmt } from "@/lib/format";
 
-const RUBRIC = [
-  ["visual_design", "Visual design quality"],
-  ["responsiveness", "Responsiveness / mobile"],
-  ["cross_browser", "Cross-browser compat"],
-  ["code_quality", "Code quality"],
-  ["documentation", "Documentation"],
-  ["originality", "Originality"],
-] as const;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Row = Record<string, any>;
+
+type Stats = {
+  gmv: number;
+  revenue: number;
+  orders: number;
+  refundRate: string;
+};
 
 export default function AdminPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [tab, setTab] = useState<"queue" | "sellers" | "refunds" | "catalog">("queue");
+  const [tab, setTab] = useState<"sellers" | "refunds" | "catalog">("sellers");
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<any>(null);
-  const [queue, setQueue] = useState<any[]>([]);
-  const [sellers, setSellers] = useState<any[]>([]);
-  const [refunds, setRefunds] = useState<any[]>([]);
-  const [catalog, setCatalog] = useState<any[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [pendingReviews, setPendingReviews] = useState(0);
+  const [sellers, setSellers] = useState<Row[]>([]);
+  const [refundMetrics, setRefundMetrics] = useState<Map<string, Row>>(new Map());
+  const [refunds, setRefunds] = useState<Row[]>([]);
+  const [catalog, setCatalog] = useState<Row[]>([]);
 
   const load = useCallback(async () => {
     const {
@@ -39,30 +42,36 @@ export default function AdminPage() {
       return;
     }
     const [
-      { data: subs },
+      { count: queueCount },
       { data: sellerRows },
+      { data: metricRows },
       { data: refundRows },
       { data: orderItems },
       { data: assets },
     ] = await Promise.all([
       supabase
         .from("submissions")
-        .select("*, assets(title, slug, description), profiles!submissions_seller_id_fkey(full_name, email)")
-        .eq("outcome", "pending")
-        .order("submitted_at"),
-      supabase.from("seller_profiles").select("*, profiles!seller_profiles_id_fkey(email)").order("created_at", { ascending: false }),
+        .select("id", { count: "exact", head: true })
+        .eq("outcome", "pending"),
+      supabase
+        .from("seller_profiles")
+        .select("*, profiles!seller_profiles_id_fkey(email)")
+        .order("created_at", { ascending: false }),
+      supabase.from("seller_refund_metrics").select("*"),
       supabase
         .from("refund_requests")
-        .select("*, order_items(price_cents, assets(title))")
-        .eq("status", "open"),
+        .select("*, order_items(price_cents, commission_cents, seller_earnings_cents, assets(title))")
+        .order("created_at", { ascending: false })
+        .limit(50),
       supabase.from("order_items").select("price_cents, commission_cents, refunded"),
       supabase
         .from("assets")
         .select("id, title, slug, status, is_featured, is_first_party, sales_count, rating_avg")
         .order("sales_count", { ascending: false }),
     ]);
-    setQueue(subs ?? []);
+    setPendingReviews(queueCount ?? 0);
     setSellers(sellerRows ?? []);
+    setRefundMetrics(new Map((metricRows ?? []).map((m: Row) => [m.seller_id, m])));
     setRefunds(refundRows ?? []);
     setCatalog(assets ?? []);
 
@@ -84,26 +93,6 @@ export default function AdminPage() {
     load();
   }, [load]);
 
-  const review = async (subId: string, outcome: "pass" | "fail" | "revise") => {
-    const notes =
-      prompt(
-        outcome === "pass"
-          ? "Reviewer notes (optional):"
-          : "Reviewer notes — tell the seller what to fix:"
-      ) ?? "";
-    const scores: Record<string, number> = {};
-    if (outcome === "pass") RUBRIC.forEach(([k]) => (scores[k] = 5));
-    else RUBRIC.forEach(([k]) => (scores[k] = 3));
-    const { error } = await supabase.rpc("review_submission", {
-      p_submission_id: subId,
-      p_outcome: outcome,
-      p_notes: notes,
-      p_scores: scores,
-    });
-    if (error) alert(error.message);
-    else load();
-  };
-
   const reviewSeller = async (id: string, approve: boolean) => {
     const { error } = await supabase.rpc("review_seller_application", {
       p_seller_id: id,
@@ -123,7 +112,7 @@ export default function AdminPage() {
   };
 
   const resolveRefund = async (id: string, approve: boolean) => {
-    const notes = prompt("Admin notes:") ?? "";
+    const notes = prompt("Decision notes:") ?? "";
     const { error } = await supabase.rpc("resolve_refund", {
       p_refund_id: id,
       p_approve: approve,
@@ -152,33 +141,46 @@ export default function AdminPage() {
     else load();
   };
 
-  if (loading)
-    return <p className="text-center py-24 text-slate-400">Loading admin…</p>;
+  if (loading || !stats)
+    return <p className="text-center py-24 text-muted">Loading admin…</p>;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-3xl font-bold text-white mb-6">Gambix Admin</h1>
+      <h1 className="text-3xl font-bold tracking-tight text-ink mb-6">Gambix Admin</h1>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {[
-          ["GMV", money(stats.gmv)],
-          ["Platform revenue", money(stats.revenue)],
-          ["Items sold", String(stats.orders)],
-          ["Refund rate", `${stats.refundRate}%`],
-        ].map(([t, v]) => (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {(
+          [
+            ["GMV", money(stats.gmv)],
+            ["Platform revenue", money(stats.revenue)],
+            ["Items sold", String(stats.orders)],
+            ["Refund rate", `${stats.refundRate}%`],
+          ] as const
+        ).map(([t, v]) => (
           <div key={t} className="card p-4">
-            <p className="text-xs text-slate-500 uppercase tracking-wide">{t}</p>
-            <p className="text-2xl font-bold text-white mt-1">{v}</p>
+            <p className="text-xs text-faint uppercase tracking-wide">{t}</p>
+            <p className="text-2xl font-bold text-ink mt-1">{v}</p>
           </div>
         ))}
+      </div>
+
+      <div className="card p-4 mb-6 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted">
+          <span className="text-ink font-medium">Layer 2 review</span> is handled
+          by the in-house review team on the review desk — {pendingReviews} submission
+          {pendingReviews === 1 ? "" : "s"} pending. Reviewer accounts have their own
+          role, separate from admin; every decision lands in the audit log.
+        </p>
+        <Link href="/review" className="btn-primary whitespace-nowrap">
+          Open review desk →
+        </Link>
       </div>
 
       <div className="flex gap-2 mb-6">
         {(
           [
-            ["queue", `Review queue (${queue.length})`],
             ["sellers", `Sellers (${sellers.length})`],
-            ["refunds", `Refunds (${refunds.length})`],
+            ["refunds", `Refunds (${refunds.filter((r) => r.status === "open").length} open)`],
             ["catalog", "Catalog"],
           ] as const
         ).map(([key, label]) => (
@@ -192,131 +194,117 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {tab === "queue" &&
-        (queue.length === 0 ? (
-          <div className="card p-10 text-center text-slate-400">
-            Review queue is empty. 🎉
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {queue.map((s) => (
-              <div key={s.id} className="card p-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-white">{s.assets?.title}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      by {s.profiles?.full_name ?? "Unknown"} ({s.profiles?.email}) ·
-                      submitted {dateFmt(s.submitted_at)}
-                    </p>
-                    <p className="text-sm text-slate-400 mt-2 max-w-2xl">
-                      {s.assets?.description}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {Object.entries(s.layer1_results ?? {}).map(([k, v]) => (
-                        <span
-                          key={k}
-                          className={`badge ${v === "passed" ? "border-emerald-500/40 text-emerald-400" : "border-amber-500/40 text-amber-400"}`}
-                        >
-                          {k.replace(/_/g, " ")}: {String(v)}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => review(s.id, "pass")} className="btn-primary">
+      {tab === "sellers" && (
+        <div className="card divide-y divide-line">
+          {sellers.map((sp) => {
+            const metrics = refundMetrics.get(sp.id);
+            return (
+              <div key={sp.id} className="flex flex-wrap items-center gap-3 p-4">
+                <div className="flex-1 min-w-48">
+                  <p className="text-ink font-medium">{sp.display_name}</p>
+                  <p className="text-xs text-faint">
+                    {sp.profiles?.email} · applied {dateFmt(sp.created_at)} ·{" "}
+                    {(sp.commission_rate * 100).toFixed(0)}% commission
+                    {metrics &&
+                      ` · refund rate ${metrics.refund_rate_pct}% (${metrics.items_refunded}/${metrics.items_sold})`}
+                  </p>
+                </div>
+                {metrics && Number(metrics.refund_rate_pct) >= 20 && (
+                  <span className="badge border-red-500/40 text-red-500">
+                    ⚑ High refund rate
+                  </span>
+                )}
+                <span
+                  className={`badge ${
+                    sp.application_status === "approved"
+                      ? "border-emerald-500/40 text-emerald-500"
+                      : sp.application_status === "pending"
+                        ? "border-amber-500/40 text-amber-500"
+                        : "border-red-500/40 text-red-500"
+                  }`}
+                >
+                  {sp.application_status}
+                </span>
+                {sp.application_status === "pending" ? (
+                  <>
+                    <button onClick={() => reviewSeller(sp.id, true)} className="btn-primary">
                       Approve
                     </button>
-                    <button onClick={() => review(s.id, "revise")} className="btn-ghost">
-                      Revise
-                    </button>
-                    <button
-                      onClick={() => review(s.id, "fail")}
-                      className="btn-ghost text-red-400 border-red-500/40"
-                    >
+                    <button onClick={() => reviewSeller(sp.id, false)} className="btn-ghost">
                       Reject
                     </button>
-                  </div>
-                </div>
+                  </>
+                ) : (
+                  <select
+                    className="input !w-auto"
+                    value={sp.tier}
+                    onChange={(e) => setTier(sp.id, e.target.value)}
+                  >
+                    <option value="probationary">Probationary</option>
+                    <option value="trusted">Trusted</option>
+                    <option value="elite">Elite (10% commission)</option>
+                  </select>
+                )}
               </div>
-            ))}
-          </div>
-        ))}
-
-      {tab === "sellers" && (
-        <div className="card divide-y divide-ink-700">
-          {sellers.map((sp) => (
-            <div key={sp.id} className="flex flex-wrap items-center gap-3 p-4">
-              <div className="flex-1 min-w-48">
-                <p className="text-white font-medium">{sp.display_name}</p>
-                <p className="text-xs text-slate-500">
-                  {sp.profiles?.email} · applied {dateFmt(sp.created_at)} ·{" "}
-                  {(sp.commission_rate * 100).toFixed(0)}% commission
-                </p>
-              </div>
-              <span
-                className={`badge ${
-                  sp.application_status === "approved"
-                    ? "border-emerald-500/40 text-emerald-400"
-                    : sp.application_status === "pending"
-                      ? "border-amber-500/40 text-amber-400"
-                      : "border-red-500/40 text-red-400"
-                }`}
-              >
-                {sp.application_status}
-              </span>
-              {sp.application_status === "pending" ? (
-                <>
-                  <button onClick={() => reviewSeller(sp.id, true)} className="btn-primary">
-                    Approve
-                  </button>
-                  <button onClick={() => reviewSeller(sp.id, false)} className="btn-ghost">
-                    Reject
-                  </button>
-                </>
-              ) : (
-                <select
-                  className="input !w-auto"
-                  value={sp.tier}
-                  onChange={(e) => setTier(sp.id, e.target.value)}
-                >
-                  <option value="probationary">Probationary</option>
-                  <option value="trusted">Trusted</option>
-                  <option value="elite">Elite (10% commission)</option>
-                </select>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
       {tab === "refunds" &&
         (refunds.length === 0 ? (
-          <div className="card p-10 text-center text-slate-400">
-            No open refund requests.
+          <div className="card p-10 text-center text-muted">
+            No refund requests yet.
           </div>
         ) : (
           <div className="space-y-4">
             {refunds.map((r) => (
               <div key={r.id} className="card p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-white font-medium">
+                  <div className="max-w-2xl">
+                    <p className="text-ink font-medium">
                       {r.order_items?.assets?.title} —{" "}
                       {money(r.order_items?.price_cents ?? 0)}
                     </p>
-                    <p className="text-sm text-slate-400 mt-1 max-w-xl">“{r.reason}”</p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Requested {dateFmt(r.created_at)} · 7-day defect-only policy
-                    </p>
+                    <div className="mt-1.5 flex flex-wrap gap-2 text-xs">
+                      <span
+                        className={`badge ${
+                          r.status === "open"
+                            ? "border-amber-500/40 text-amber-500"
+                            : r.status === "approved"
+                              ? "border-emerald-500/40 text-emerald-500"
+                              : "border-red-500/40 text-red-500"
+                        }`}
+                      >
+                        {r.status}
+                      </span>
+                      {r.flagged_change_of_mind && (
+                        <span className="badge border-red-500/40 text-red-500">
+                          ⚑ Change of mind — deny by default
+                        </span>
+                      )}
+                      <span className="badge border-line text-faint">
+                        {dateFmt(r.created_at)}
+                      </span>
+                      {r.commission_reversed_cents != null && (
+                        <span className="badge border-line text-faint">
+                          Reversed: {money(r.commission_reversed_cents)} commission +{" "}
+                          {money(r.payout_reversed_cents ?? 0)} payout
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted mt-2">“{r.reason}”</p>
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => resolveRefund(r.id, true)} className="btn-primary">
-                      Approve refund
-                    </button>
-                    <button onClick={() => resolveRefund(r.id, false)} className="btn-ghost">
-                      Deny
-                    </button>
-                  </div>
+                  {r.status === "open" && (
+                    <div className="flex gap-2">
+                      <button onClick={() => resolveRefund(r.id, true)} className="btn-primary">
+                        Approve refund
+                      </button>
+                      <button onClick={() => resolveRefund(r.id, false)} className="btn-ghost">
+                        Deny
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -324,19 +312,19 @@ export default function AdminPage() {
         ))}
 
       {tab === "catalog" && (
-        <div className="card divide-y divide-ink-700">
+        <div className="card divide-y divide-line">
           {catalog.map((a) => (
             <div key={a.id} className="flex flex-wrap items-center gap-3 p-4 text-sm">
               <div className="flex-1 min-w-48">
-                <p className="text-white font-medium">
+                <p className="text-ink font-medium">
                   {a.title}
                   {a.is_first_party && (
-                    <span className="badge border-pulse-500/40 text-pulse-400 ml-2">
+                    <span className="badge border-accent/40 text-accent ml-2">
                       1st party
                     </span>
                   )}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-faint">
                   {a.sales_count} sales · ★ {Number(a.rating_avg).toFixed(1)} · {a.status}
                 </p>
               </div>
@@ -349,7 +337,7 @@ export default function AdminPage() {
               {a.status === "approved" && (
                 <button
                   onClick={() => delist(a.id)}
-                  className="btn-ghost text-red-400 border-red-500/40"
+                  className="btn-ghost text-red-500 border-red-500/40"
                 >
                   Delist
                 </button>

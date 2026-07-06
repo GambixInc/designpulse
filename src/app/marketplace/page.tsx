@@ -43,9 +43,14 @@ export default async function MarketplacePage({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
-      <h1 className="text-3xl font-bold text-white mb-6">Marketplace</h1>
+      <h1 className="text-3xl font-bold tracking-tight text-ink mb-2">
+        Browse the marketplace
+      </h1>
+      <p className="text-muted mb-7">
+        Every listing passed automated checks and in-house human review.
+      </p>
 
-      <form action="/marketplace" className="mb-5 flex gap-2 max-w-xl">
+      <form action="/marketplace" className="mb-6 flex gap-2 max-w-xl">
         {searchParams.platform && (
           <input type="hidden" name="platform" value={searchParams.platform} />
         )}
@@ -53,15 +58,15 @@ export default async function MarketplacePage({
           name="q"
           defaultValue={searchParams.q}
           placeholder="Search templates, themes, snapshots…"
-          className="input"
+          className="input !rounded-full"
         />
         <button className="btn-primary">Search</button>
       </form>
 
-      <div className="flex flex-wrap items-center gap-2 mb-3">
+      <div className="flex flex-wrap items-center gap-2 mb-4">
         <Link
           href={qs({ platform: undefined })}
-          className={`badge ${!searchParams.platform ? "border-pulse-500 text-pulse-400" : "border-ink-600 text-slate-400"} hover:border-pulse-500`}
+          className={`pill ${!searchParams.platform ? "pill-active" : "pill-idle"}`}
         >
           All platforms
         </Link>
@@ -69,40 +74,40 @@ export default async function MarketplacePage({
           <Link
             key={key}
             href={qs({ platform: key })}
-            className={`badge ${searchParams.platform === key ? "border-pulse-500 text-pulse-400" : "border-ink-600 text-slate-400"} hover:border-pulse-500`}
+            className={`pill ${searchParams.platform === key ? "pill-active" : "pill-idle"}`}
           >
             {meta.label}
           </Link>
         ))}
-        <span className="mx-2 text-ink-600">|</span>
+        <span className="mx-1 text-line">|</span>
         <Link
           href={qs({ rating: searchParams.rating ? undefined : "4.5" })}
-          className={`badge ${searchParams.rating ? "border-amber-500 text-amber-400" : "border-ink-600 text-slate-400"} hover:border-amber-500`}
+          className={`pill ${searchParams.rating ? "border-amber-500 text-amber-600 dark:text-amber-400" : "pill-idle"}`}
         >
           ★ 4.5+
         </Link>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-8 text-sm">
-        <span className="text-slate-500">Sort:</span>
+        <span className="text-faint">Sort:</span>
         {sorts.map(([key, label]) => (
           <Link
             key={key}
             href={qs({ sort: key === "new" ? undefined : key })}
-            className={`px-2 py-1 rounded ${(searchParams.sort ?? "new") === key ? "text-pulse-400" : "text-slate-400 hover:text-white"}`}
+            className={`px-2 py-1 rounded ${(searchParams.sort ?? "new") === key ? "text-accent font-medium" : "text-muted hover:text-ink"}`}
           >
             {label}
           </Link>
         ))}
-        <span className="ml-auto text-slate-500">{assets.length} results</span>
+        <span className="ml-auto text-faint">{assets.length} results</span>
       </div>
 
       {assets.length === 0 ? (
-        <div className="card p-12 text-center text-slate-400">
+        <div className="card p-12 text-center text-muted">
           No assets match those filters yet.
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {assets.map((a) => (
             <AssetCard key={a.id} asset={a} />
           ))}

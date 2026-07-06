@@ -101,8 +101,8 @@ export default function UploadPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
-      <h1 className="text-3xl font-bold text-white mb-2">Upload a new asset</h1>
-      <p className="text-sm text-slate-400 mb-8">
+      <h1 className="text-3xl font-bold text-ink mb-2">Upload a new asset</h1>
+      <p className="text-sm text-muted mb-8">
         On submit, your package runs through Layer 1 automated pre-checks (malware
         scan, link check, packaging validation, code lint, plagiarism detection),
         then human review within 3–5 business days.
@@ -162,12 +162,12 @@ export default function UploadPage() {
             className="input"
             onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
           />
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-faint mt-1">
             MVP records package metadata; production uploads to private storage
             with per-purchase tokenized delivery.
           </p>
         </div>
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-red-500">{error}</p>}
         <button disabled={busy} className="btn-primary w-full py-2.5">
           {busy ? "Running automated pre-checks…" : "Submit for review"}
         </button>

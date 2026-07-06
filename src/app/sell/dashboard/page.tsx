@@ -59,7 +59,7 @@ export default function SellerDashboard() {
   }, []);
 
   if (loading)
-    return <p className="text-center py-24 text-slate-400">Loading seller hub…</p>;
+    return <p className="text-center py-24 text-muted">Loading seller hub…</p>;
 
   const active = sales.filter((s) => !s.refunded);
   const gross = active.reduce((n, s) => n + s.price_cents, 0);
@@ -69,20 +69,20 @@ export default function SellerDashboard() {
     : "0.0";
 
   const statusBadge: Record<string, string> = {
-    approved: "border-emerald-500/40 text-emerald-400",
-    pending_review: "border-amber-500/40 text-amber-400",
-    draft: "border-ink-600 text-slate-400",
-    rejected: "border-red-500/40 text-red-400",
-    delisted: "border-red-500/40 text-red-400",
+    approved: "border-emerald-500/40 text-emerald-500",
+    pending_review: "border-amber-500/40 text-amber-500",
+    draft: "border-line text-muted",
+    rejected: "border-red-500/40 text-red-500",
+    delisted: "border-red-500/40 text-red-500",
   };
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">{profile.display_name}</h1>
-          <p className="text-sm text-slate-400 mt-1 capitalize">
-            <span className="badge border-pulse-500/40 text-pulse-400 mr-2">
+          <h1 className="text-3xl font-bold text-ink">{profile.display_name}</h1>
+          <p className="text-sm text-muted mt-1 capitalize">
+            <span className="badge border-accent/40 text-accent mr-2">
               {profile.tier} tier
             </span>
             {(profile.commission_rate * 100).toFixed(0)}% platform commission ·
@@ -100,25 +100,25 @@ export default function SellerDashboard() {
           ["Refund rate", `${refundRate}%`],
         ].map(([t, v]) => (
           <div key={t} className="card p-4">
-            <p className="text-xs text-slate-500 uppercase tracking-wide">{t}</p>
-            <p className="text-2xl font-bold text-white mt-1">{v}</p>
+            <p className="text-xs text-faint uppercase tracking-wide">{t}</p>
+            <p className="text-2xl font-bold text-ink mt-1">{v}</p>
           </div>
         ))}
       </div>
 
       <section className="mb-10">
-        <h2 className="text-xl font-bold text-white mb-4">Your assets</h2>
+        <h2 className="text-xl font-bold text-ink mb-4">Your assets</h2>
         {assets.length === 0 ? (
-          <div className="card p-8 text-center text-slate-400">
+          <div className="card p-8 text-center text-muted">
             No assets yet — upload your first one.
           </div>
         ) : (
-          <div className="card divide-y divide-ink-700">
+          <div className="card divide-y divide-line">
             {assets.map((a) => (
               <div key={a.id} className="flex flex-wrap items-center gap-3 p-4">
                 <div className="flex-1 min-w-48">
-                  <p className="text-white font-medium">{a.title}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-ink font-medium">{a.title}</p>
+                  <p className="text-xs text-faint">
                     {a.sales_count} sales
                     {a.rating_count > 0 &&
                       ` · ★ ${Number(a.rating_avg).toFixed(1)} (${a.rating_count})`}
@@ -137,39 +137,39 @@ export default function SellerDashboard() {
       </section>
 
       <section>
-        <h2 className="text-xl font-bold text-white mb-4">Submission history</h2>
+        <h2 className="text-xl font-bold text-ink mb-4">Submission history</h2>
         {submissions.length === 0 ? (
-          <p className="text-sm text-slate-500">No submissions yet.</p>
+          <p className="text-sm text-faint">No submissions yet.</p>
         ) : (
           <div className="space-y-3">
             {submissions.map((s) => (
               <div key={s.id} className="card p-4 text-sm">
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-white font-medium">{s.assets?.title}</span>
+                  <span className="text-ink font-medium">{s.assets?.title}</span>
                   <span
                     className={`badge ${
                       s.outcome === "pass"
-                        ? "border-emerald-500/40 text-emerald-400"
+                        ? "border-emerald-500/40 text-emerald-500"
                         : s.outcome === "pending"
-                          ? "border-amber-500/40 text-amber-400"
-                          : "border-red-500/40 text-red-400"
+                          ? "border-amber-500/40 text-amber-500"
+                          : "border-red-500/40 text-red-500"
                     }`}
                   >
                     {s.outcome}
                   </span>
-                  <span className="text-slate-500 text-xs ml-auto">
+                  <span className="text-faint text-xs ml-auto">
                     Submitted {dateFmt(s.submitted_at)}
                     {s.reviewed_at && ` · Reviewed ${dateFmt(s.reviewed_at)}`}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-2">
+                <p className="text-xs text-faint mt-2">
                   Layer 1 automated checks:{" "}
                   {Object.entries(s.layer1_results ?? {})
                     .map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`)
                     .join(" · ")}
                 </p>
                 {s.reviewer_notes && (
-                  <p className="mt-2 text-slate-300 border-l-2 border-pulse-500 pl-3">
+                  <p className="mt-2 text-muted border-l-2 border-accent pl-3">
                     Reviewer: {s.reviewer_notes}
                   </p>
                 )}
