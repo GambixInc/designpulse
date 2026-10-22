@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { PLATFORM_META, money } from "@/lib/format";
 
@@ -12,25 +13,37 @@ type AssetCardProps = {
     sales_count: number;
     platform: string;
     min_price_cents: number;
+    preview_images?: string[];
   };
 };
 
 export default function AssetCard({ asset }: AssetCardProps) {
   const meta = PLATFORM_META[asset.platform] ?? PLATFORM_META.wordpress;
+  const cover = asset.preview_images?.[0];
   return (
     <Link
       href={`/asset/${asset.slug}`}
       className="card card-hover overflow-hidden group"
     >
       <div
-        className={`h-44 bg-gradient-to-br ${meta.gradient} relative flex items-end p-3`}
+        className={`h-44 bg-gradient-to-br ${meta.gradient} relative flex items-end p-3 overflow-hidden`}
       >
-        <span className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.3),transparent_55%)]" />
+        {cover ? (
+          <Image
+            src={cover}
+            alt={`${asset.title} preview`}
+            fill
+            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover object-left-top transition-transform duration-500 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <span className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.3),transparent_55%)]" />
+        )}
         <span className="badge bg-black/40 text-white border-white/20 backdrop-blur relative">
           {meta.label}
         </span>
-        {/* Watermarked preview placeholder (DRM per PRD §9) */}
-        <span className="absolute top-2 right-3 text-[10px] uppercase tracking-widest text-white/50">
+        {/* Watermarked preview (DRM per PRD §9) */}
+        <span className="absolute top-2 right-2 rounded-full bg-black/40 px-2 py-0.5 text-[10px] uppercase tracking-widest text-white/80 backdrop-blur">
           DesignPulse preview
         </span>
       </div>

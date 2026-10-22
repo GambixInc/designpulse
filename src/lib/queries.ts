@@ -14,6 +14,7 @@ export type AssetListItem = {
   platform: string;
   category_name: string;
   min_price_cents: number;
+  preview_images: string[];
 };
 
 // deno-lint-ignore no-explicit-any
@@ -37,6 +38,7 @@ export function toListItem(row: Row): AssetListItem {
     platform: row.categories?.platform ?? "wordpress",
     category_name: row.categories?.name ?? "",
     min_price_cents: prices.length ? Math.min(...prices) : 0,
+    preview_images: row.preview_images ?? [],
   };
 }
 
@@ -54,7 +56,7 @@ export async function fetchAssets(
   let query = supabase
     .from("assets")
     .select(
-      "id, slug, title, description, is_first_party, is_featured, rating_avg, rating_count, sales_count, created_at, categories(name, platform), asset_licenses(price_cents)"
+      "id, slug, title, description, is_first_party, is_featured, rating_avg, rating_count, sales_count, created_at, preview_images, categories(name, platform), asset_licenses(price_cents)"
     )
     .eq("status", "approved");
 

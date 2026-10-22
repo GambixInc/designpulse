@@ -4,6 +4,7 @@ import { getSessionProfile } from "@/lib/supabase/server";
 import { PLATFORM_META, CONNECTOR_META, dateFmt } from "@/lib/format";
 import BuyBox from "./BuyBox";
 import DetailTabs from "./DetailTabs";
+import { PreviewHero, PreviewGallery, type PreviewData } from "./Preview";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,13 @@ export default async function AssetPage({ params }: { params: { slug: string } }
   const compat = (asset.compatibility ?? {}) as Record<string, unknown>;
   const isGhl = platform === "ghl";
   const reviews = (asset.reviews ?? []) as Review[];
+  const preview: PreviewData = {
+    title: asset.title,
+    images: asset.preview_images ?? [],
+    platformLabel: meta.label,
+    gradient: meta.gradient,
+    demoUrl: asset.demo_url,
+  };
 
   const overview = (
     <div>
@@ -159,28 +167,9 @@ export default async function AssetPage({ params }: { params: { slug: string } }
       </nav>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          {/* Watermarked preview area (PRD §9: view-only, overlay watermark) */}
-          <div
-            className={`relative h-72 md:h-96 rounded-2xl bg-gradient-to-br ${meta.gradient} overflow-hidden select-none`}
-          >
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.3),transparent_55%)]" />
-            <div className="absolute inset-0 grid place-items-center opacity-20 rotate-[-18deg] text-4xl font-black tracking-widest text-white pointer-events-none">
-              DESIGNPULSE · PREVIEW · DESIGNPULSE
-            </div>
-            <span className="badge bg-black/40 text-white border-white/20 backdrop-blur absolute bottom-4 left-4">
-              {meta.label}
-            </span>
-            {asset.demo_url && (
-              <a
-                href={asset.demo_url}
-                target="_blank"
-                className="btn bg-black/40 text-white border border-white/20 backdrop-blur absolute bottom-4 right-4 hover:bg-black/60"
-              >
-                View live demo ↗
-              </a>
-            )}
-          </div>
+        <div className="lg:col-span-2 min-w-0">
+          <PreviewHero preview={preview} />
+          <PreviewGallery preview={preview} />
 
           <div className="mt-8">
             <h1 className="text-3xl font-bold tracking-tight text-ink">{asset.title}</h1>
