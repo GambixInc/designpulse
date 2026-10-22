@@ -31,7 +31,7 @@ Next.js 14.2.35 (App Router, TS strict) + Tailwind 3 + `@supabase/ssr` cookie au
 
 - `checkout(p_license_ids uuid[])` → creates order + items + license keys + 72h download tokens, updates sales counts. Commission: first-party = 100% to Gambix; third-party = seller's `commission_rate` (default 0.15, elite 0.10).
 - `regenerate_download_token(p_order_item_id)` — buyer-owned check, new 72h token
-- `use_download_token(p_token)` — validates/consumes token (called anonymously by download route; token is the bearer)
+- `use_download_token(p_token)` — validates/consumes token (called anonymously by download route; token is the bearer). Also returns `install_url` from `asset_packages` when the asset has one.
 - `submit_asset(p_asset_id)` — seller submits; simulates Layer 1 automated pre-check results (jsonb), sets `pending_review`, creates submission
 - `review_submission(id, outcome, notes, scores)` — admin Layer 2; pass/fail/revise; auto-promotes sellers to Trusted (10+ approved, 4.5+ avg)
 - `apply_as_seller(...)`, `review_seller_application(id, approve)`, `resolve_refund(id, approve, notes)`
@@ -49,7 +49,7 @@ Migrations were applied via the Supabase MCP (`designpulse_core_schema`, `design
 - `src/app/checkout/page.tsx` — simulated payment form → `checkout` RPC (Stripe stub point)
 - `src/app/checkout/success/[orderId]/page.tsx`
 - `src/app/dashboard/page.tsx` — buyer library: downloads, license keys, reviews, refunds, simulated GHL import modal (PRD §8 flow)
-- `src/app/api/download/[token]/route.ts` — validates token via RPC, streams generated placeholder ZIP
+- `src/app/api/download/[token]/route.ts` — validates token via RPC; ships a "Use this template.html" + instructions + LICENSE when the asset has an `install_url`, otherwise the generated placeholder ZIP
 - `src/app/sell/page.tsx` (application), `sell/dashboard/page.tsx` (analytics, submissions), `sell/upload/page.tsx` (upload → `submit_asset`)
 - `src/app/admin/page.tsx` — seller tiers (+ refund-rate flags), refund queue, catalog/featured, GMV stats; Layer 2 review lives on the review desk
 - `src/app/review/page.tsx` — reviewer/admin-only desk: submission queue with business-day SLA badges, 5-criterion rubric, seller feedback vs. staff-only internal notes, refund tickets, audit log
@@ -65,7 +65,7 @@ New RPCs (2026-07-05): `request_refund`, `connect_ghl_account`, `run_ghl_conflic
 ## Known stubs / production TODOs (in priority order)
 
 1. **Stripe Connect** — replace simulated checkout with Stripe-hosted Checkout (destination charges, 15% application fee), Express onboarding for sellers, webhook `payment_intent.succeeded` → reuse the `checkout` RPC logic. Stub comments in `checkout/page.tsx` and `sell/page.tsx`.
-2. **Real file storage** — seller package upload to private Supabase Storage; download route streams the real file instead of a generated placeholder ZIP.
+2. **Real file storage** — first-party Wix templates now deliver for real: `asset_packages(asset_id, install_url)` (RLS on, admin-only policy, read only through `use_download_token`) holds the Wix redemption URL from each template's "Download shareable file" zip (that zip is just a redirect page to this URL). Still to do: seller package upload to private Supabase Storage for everything else.
 3. **Layer 1 scanners** — `submit_asset` fabricates results; wire real malware scan / link check / lint / plagiarism detection.
 4. **GHL API** — import modal simulates OAuth + `POST /v1/locations/{id}/snapshots/load`; wire the real Snapshot API + share-link fallback.
 5. **Types** — run `npx supabase gen types typescript --project-id lrebfcfrkobpjgwdvauq` and replace the `any` mappings in dashboard/admin client components.
