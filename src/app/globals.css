@@ -3,7 +3,11 @@
 @tailwind utilities;
 
 /* Framer-inspired system: soft neutral canvas, near-black ink, one accent.
-   Values are RGB triplets so Tailwind alpha modifiers work. */
+   Values are RGB triplets so Tailwind alpha modifiers work.
+   Accent is the DesignPulse teal from the Canva logo (#00A896, `brand`).
+   On light surfaces it is deepened to #007F73 so white button text and teal
+   links clear WCAG AA; on dark surfaces the logo teal itself is used, with
+   near-black text on filled buttons. */
 :root {
   --canvas: 247 247 248; /* #F7F7F8 */
   --card: 255 255 255;
@@ -11,7 +15,10 @@
   --ink: 10 10 10; /* #0A0A0A */
   --muted: 84 84 92;
   --faint: 140 140 148;
-  --accent-soft: 238 237 253;
+  --accent: 0 127 115; /* #007F73 */
+  --accent-hover: 0 107 97; /* #006B61 */
+  --on-accent: 255 255 255;
+  --accent-soft: 230 246 244; /* #E6F6F4 */
 }
 
 .dark {
@@ -21,7 +28,10 @@
   --ink: 245 245 246;
   --muted: 166 166 174;
   --faint: 112 112 120;
-  --accent-soft: 32 30 62;
+  --accent: 0 168 150; /* #00A896, logo teal */
+  --accent-hover: 0 191 171; /* #00BFAB */
+  --on-accent: 10 10 10;
+  --accent-soft: 14 40 37; /* #0E2825 */
 }
 
 body {
@@ -39,7 +49,7 @@ body {
   @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
 }
 .btn-primary {
-  @apply btn bg-accent hover:bg-accent-hover text-white;
+  @apply btn bg-accent hover:bg-accent-hover text-on-accent;
 }
 .btn-ghost {
   @apply btn border border-line hover:bg-line/40 text-ink;

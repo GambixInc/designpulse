@@ -53,7 +53,7 @@ function ScoreDots({
           onClick={() => onChange(n)}
           aria-label={`Score ${n}`}
           className={`h-6 w-6 rounded-full text-xs font-medium transition-colors ${
-            n <= value ? "bg-accent text-white" : "bg-line text-muted hover:bg-faint/40"
+            n <= value ? "bg-accent text-on-accent" : "bg-line text-muted hover:bg-faint/40"
           }`}
         >
           {n}

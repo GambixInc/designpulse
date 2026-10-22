@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSessionProfile } from "@/lib/supabase/server";
 import SignOutButton from "./SignOutButton";
 import ThemeToggle from "./ThemeToggle";
+import Logo from "./Logo";
 
 export default async function Navbar() {
   const { profile } = await getSessionProfile();
@@ -9,9 +10,8 @@ export default async function Navbar() {
   return (
     <nav className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 h-16 flex items-center gap-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold text-lg text-ink">
-          <span className="inline-block h-6 w-6 rounded-md bg-accent" />
-          DesignPulse
+        <Link href="/" className="flex items-center shrink-0" aria-label="DesignPulse home">
+          <Logo className="h-6 sm:h-7" />
         </Link>
         <div className="hidden md:flex items-center gap-5 text-sm text-muted">
           <Link href="/marketplace" className="hover:text-ink">Templates</Link>

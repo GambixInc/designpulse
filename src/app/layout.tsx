@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import Logo from "@/components/Logo";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -48,10 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="border-t border-line mt-20">
           <div className="mx-auto max-w-7xl px-4 py-12 grid gap-10 sm:grid-cols-3">
             <div>
-              <div className="flex items-center gap-2 font-semibold text-ink">
-                <span className="inline-block h-5 w-5 rounded-md bg-accent" />
-                DesignPulse
-              </div>
+              <Logo className="h-6" />
               <p className="mt-3 text-sm text-faint max-w-xs">
                 A Gambix marketplace. Every asset passes automated checks and
                 in-house human review.

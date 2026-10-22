@@ -12,11 +12,13 @@ const config: Config = {
         ink: "rgb(var(--ink) / <alpha-value>)",
         muted: "rgb(var(--muted) / <alpha-value>)",
         faint: "rgb(var(--faint) / <alpha-value>)",
+        brand: "#00a896",
         accent: {
-          DEFAULT: "#5548e8",
-          hover: "#4638d6",
+          DEFAULT: "rgb(var(--accent) / <alpha-value>)",
+          hover: "rgb(var(--accent-hover) / <alpha-value>)",
           soft: "rgb(var(--accent-soft) / <alpha-value>)",
         },
+        "on-accent": "rgb(var(--on-accent) / <alpha-value>)",
       },
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
