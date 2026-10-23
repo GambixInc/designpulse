@@ -86,3 +86,20 @@ export async function fetchAssets(
     items.sort((a, b) => b.min_price_cents - a.min_price_cents);
   return items;
 }
+
+// Approved listings per platform, for the home page platform tiles.
+// Returns an empty map on error so the tiles simply omit their counts.
+export async function countByPlatform(
+  supabase: SupabaseClient
+): Promise<Record<string, number>> {
+  const { data, error } = await supabase
+    .from("assets")
+    .select("categories(platform)")
+    .eq("status", "approved");
+  if (error || !data) return {};
+  return (data as Row[]).reduce<Record<string, number>>((acc, row) => {
+    const platform = row.categories?.platform ?? "wordpress";
+    acc[platform] = (acc[platform] ?? 0) + 1;
+    return acc;
+  }, {});
+}

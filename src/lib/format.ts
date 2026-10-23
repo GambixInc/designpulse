@@ -1,28 +1,36 @@
+// `logo` files live in public/platforms (Simple Icons, plus HighLevel's own
+// mark). Wix's mark is black, so it is inverted on dark surfaces.
 export const PLATFORM_META: Record<
   string,
-  { label: string; color: string; gradient: string }
+  { label: string; color: string; gradient: string; logo: string; invertOnDark?: boolean }
 > = {
   wix_studio: {
+    logo: "/platforms/wix_studio.svg",
+    invertOnDark: true,
     label: "Wix Studio",
     color: "bg-amber-500/10 text-amber-600 dark:text-amber-300 border-amber-500/30",
     gradient: "from-amber-400 to-orange-500",
   },
   webflow: {
+    logo: "/platforms/webflow.svg",
     label: "Webflow",
     color: "bg-blue-500/10 text-blue-600 dark:text-blue-300 border-blue-500/30",
     gradient: "from-blue-400 to-indigo-500",
   },
   wordpress: {
+    logo: "/platforms/wordpress.svg",
     label: "WordPress",
     color: "bg-sky-500/10 text-sky-600 dark:text-sky-300 border-sky-500/30",
     gradient: "from-sky-400 to-cyan-500",
   },
   shopify: {
+    logo: "/platforms/shopify.svg",
     label: "Shopify",
     color: "bg-green-500/10 text-green-700 dark:text-green-300 border-green-500/30",
     gradient: "from-green-400 to-emerald-500",
   },
   ghl: {
+    logo: "/platforms/ghl.svg",
     label: "Go High Level",
     color: "bg-violet-500/10 text-violet-600 dark:text-violet-300 border-violet-500/30",
     gradient: "from-violet-400 to-fuchsia-500",

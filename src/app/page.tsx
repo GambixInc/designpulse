@@ -1,16 +1,17 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { fetchAssets } from "@/lib/queries";
+import { fetchAssets, countByPlatform } from "@/lib/queries";
 import AssetCard from "@/components/AssetCard";
-import { PLATFORM_META } from "@/lib/format";
+import PlatformTiles from "@/components/PlatformTiles";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const supabase = createClient();
-  const [featured, fresh, catalogCount] = await Promise.all([
+  const [featured, fresh, platformCounts, catalogCount] = await Promise.all([
     fetchAssets(supabase, { featuredOnly: true, limit: 8 }),
     fetchAssets(supabase, { sort: "new", limit: 8 }),
+    countByPlatform(supabase),
     supabase
       .from("assets")
       .select("id", { count: "exact", head: true })
@@ -28,6 +29,10 @@ export default async function HomePage() {
   return (
     <div className="mx-auto max-w-7xl px-4">
       <section className="pt-20 pb-14 text-center">
+        <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-line bg-card px-3.5 py-1.5 text-xs font-medium text-muted">
+          <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+          A Gambix marketplace · every listing human-reviewed
+        </p>
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-ink">
           Premium templates.
           <br />
@@ -52,20 +57,10 @@ export default async function HomePage() {
       </section>
 
       <section className="pb-4">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {Object.entries(PLATFORM_META).map(([key, meta]) => (
-            <Link
-              key={key}
-              href={`/marketplace?platform=${key}`}
-              className="card card-hover p-5 text-center"
-            >
-              <div
-                className={`mx-auto h-11 w-11 rounded-xl bg-gradient-to-br ${meta.gradient} mb-3`}
-              />
-              <div className="text-sm font-medium text-ink">{meta.label}</div>
-            </Link>
-          ))}
-        </div>
+        <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-faint">
+          Browse by platform
+        </p>
+        <PlatformTiles counts={platformCounts} />
       </section>
 
       <section className="py-12">
