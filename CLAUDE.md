@@ -95,6 +95,8 @@ New RPCs (2026-07-05): `request_refund`, `connect_ghl_account`, `run_ghl_conflic
 - Next 14.2.15 has a security vulnerability; pinned to 14.2.35.
 - `@supabase/ssr` `setAll` callback params need explicit `CookieToSet[]` typing under strict TS.
 - Embedded joins with two FKs to the same table need hints, e.g. `profiles!submissions_seller_id_fkey`.
+- New functions in `public` get EXECUTE for PUBLIC, anon and authenticated by default. Revoke explicitly (`from public, anon` for signed-in-only RPCs; `from public, anon, authenticated` for internal helpers). Only `use_download_token`, `fulfill_checkout`, `is_admin`, `is_reviewer` and `current_terms_version` are meant to be anonymous (`harden_rpc_grants` migration).
+- The `http` extension's PUBLIC grant belongs to `supabase_admin` and cannot be revoked by `postgres`; it stays unreachable from browsers only because `extensions` is not an exposed API schema. Never add `extensions` to the exposed schemas.
 
 ## Commands
 
