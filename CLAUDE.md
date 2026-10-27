@@ -13,7 +13,9 @@ Two-sided digital asset marketplace by Gambix selling design templates (Wix Stud
 - Supabase URL + anon key are hardcoded fallbacks in `src/lib/supabase/config.ts` (public by design, RLS enforces access). Env overrides: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 - **No service-role key is used anywhere.** All privileged operations are Postgres `security definer` RPCs. Keep it that way unless there's a strong reason.
 
-## Demo accounts (password: `designpulse-demo`)
+## Demo accounts (banned 2026-10-27)
+
+All four demo accounts are banned (`auth.users.banned_until = 2999-12-31`) and the one-click demo buttons are gone from /login: their password was public, and the demo admin could read `asset_packages` (the Wix redemption URLs). Unban with `update auth.users set banned_until = null where email like '%@designpulse.demo'` only on a non-production copy.
 
 - `buyer@designpulse.demo` — buyer with purchases (incl. an imported GHL snapshot + a resolved refund)
 - `seller@designpulse.demo` — approved seller "PixelForge Studio"
@@ -39,15 +41,23 @@ Next.js 14.2.35 (App Router, TS strict) + Tailwind 3 + `@supabase/ssr` cookie au
 
 **Schema** (all RLS-enabled): `profiles` (role: buyer/seller/admin, auto-created by trigger on auth.users), `seller_profiles` (tier: probationary/trusted/elite, commission_rate, stripe_account_id stub), `categories` (5 launch + plugins phase-2), `assets` (status: draft/pending_review/approved/rejected/delisted; `is_first_party`, `is_featured`, rating aggregates maintained by trigger; `preview_images` = ordered image paths, first is the card cover, files live in `public/previews/<slug>/`), `asset_licenses` (standard/extended per asset), `submissions` (layer1_results jsonb, layer2_scores jsonb, outcome), `orders`, `order_items` (price/commission/seller_earnings split, refunded flag), `license_keys`, `download_tokens` (expires_at, max_uses 5), `reviews` (verified-buyer insert policy, unique per buyer+asset), `refund_requests`, `wishlists`.
 
-Migrations were applied via the Supabase MCP (`designpulse_core_schema`, `designpulse_functions_triggers`, `designpulse_rls_policies`, `admin_seller_profile_management`, `fix_token_generation_search_path`). There is no local `supabase/migrations` directory yet — pulling the remote schema into version control (`supabase db pull`) would be a good early task.
+Early migrations were applied via the Supabase MCP (`designpulse_core_schema`, `designpulse_functions_triggers`, `designpulse_rls_policies`, `admin_seller_profile_management`, `fix_token_generation_search_path`, …). From 2026-10-27 new migrations live in `supabase/migrations/` and are applied with the same names; pulling the older remote schema into that folder (`supabase db pull`) is still to do.
+
+**Payments (2026-10-27):** real Stripe Checkout, verified in Postgres. `start_checkout` → Stripe-hosted page → `fulfill_checkout` (success page + `/api/stripe/webhook`). The Stripe restricted key lives only in Supabase Vault (`stripe_secret_key`), called through the `http` extension; the webhook needs `STRIPE_WEBHOOK_SECRET` in Vercel. The old simulated `checkout()` is revoked. Refunds are manual in the Stripe Dashboard after approval on /review. Owner setup: `docs/STRIPE-SETUP.md`.
+
+**Catalog (2026-10-27):** the 80 seeded placeholder listings (invented sales and ratings, no files) are `delisted`. Only Restoria, Overhead and Sentris are approved. Do not relist anything that does not ship a real, tested file.
 
 ## File map
 
 - `src/app/page.tsx` — home (featured + trending)
 - `src/app/marketplace/page.tsx` — browse with platform/rating filters, sort, search (filtering helper: `src/lib/queries.ts`)
 - `src/app/asset/[slug]/page.tsx` + `BuyBox.tsx` — product page, license picker, wishlist
-- `src/app/checkout/page.tsx` — simulated payment form → `checkout` RPC (Stripe stub point)
+- `src/app/checkout/page.tsx` — terms consent → `start_checkout` RPC → redirect to Stripe Checkout
+- `src/app/checkout/complete/[checkoutId]/page.tsx` — Stripe return URL; polls `fulfill_checkout`, then redirects to success
+- `src/app/api/stripe/webhook/route.ts` + `src/lib/stripe-webhook.ts` — signed webhook backup path for fulfillment
 - `src/app/checkout/success/[orderId]/page.tsx`
+- `src/app/legal/*` + `src/components/LegalDoc.tsx` + `src/lib/legal.ts` — Terms, License, Refunds, Privacy, Acceptable use & AI, Seller terms (Gambix LLC; fill the null fields in `legal.ts`)
+- `src/app/ai/page.tsx` + `src/lib/ai-hub.ts` + `src/components/AiWaitlistForm.tsx` — AI Hub and early-access list (`ai_waitlist`); strategy in `docs/AI-HUB.md`
 - `src/app/dashboard/page.tsx` — buyer library: downloads, license keys, reviews, refunds, simulated GHL import modal (PRD §8 flow)
 - `src/app/api/download/[token]/route.ts` — validates token via RPC; ships a "Use this template.html" + instructions + LICENSE when the asset has an `install_url`, otherwise the generated placeholder ZIP
 - `src/app/sell/page.tsx` (application), `sell/dashboard/page.tsx` (analytics, submissions), `sell/upload/page.tsx` (upload → `submit_asset`)
@@ -57,14 +67,14 @@ Migrations were applied via the Supabase MCP (`designpulse_core_schema`, `design
 - `src/components/DeliveryModal.tsx` — per-platform install connectors (Wix guided, Webflow clone link, WP demo importer, Shopify OAuth sim)
 - `src/components/GhlImportFlow.tsx` — conflict check → confirm → snapshot push (RPCs: `run_ghl_conflict_check`, `confirm_ghl_import`)
 - `src/components/RefundModal.tsx` — structured refund ticket (reason dropdown, proof upload, `request_refund` RPC)
-- `src/app/login/page.tsx` — email/password + one-click demo accounts
+- `src/app/login/page.tsx` — email/password sign-in and sign-up (`?next=` limited to same-site paths)
 - `middleware.ts` — Supabase session refresh (excludes `/api/download`)
 
 New RPCs (2026-07-05): `request_refund`, `connect_ghl_account`, `run_ghl_conflict_check`, `confirm_ghl_import`, `is_reviewer`, `log_review_action` (internal-only; EXECUTE revoked from anon/authenticated). `checkout` now takes `p_ghl_connection_id` and refuses GHL items without it. `review_submission` takes `p_internal_note` (stored only in the staff-only `review_audit_log`). Design tokens are CSS variables in `globals.css` (light `:root` / `.dark`), mapped in `tailwind.config.ts` — use `ink/muted/faint/line/card/canvas/accent`, never raw slate/ink-950 classes.
 
 ## Known stubs / production TODOs (in priority order)
 
-1. **Stripe Connect** — replace simulated checkout with Stripe-hosted Checkout (destination charges, 15% application fee), Express onboarding for sellers, webhook `payment_intent.succeeded` → reuse the `checkout` RPC logic. Stub comments in `checkout/page.tsx` and `sell/page.tsx`.
+1. **Stripe Connect** for third-party sellers — first-party checkout is live (above); `start_checkout` refuses third-party items until Express onboarding and destination charges (15% application fee) exist. Stub comments in `sell/page.tsx`.
 2. **Real file storage** — first-party Wix templates now deliver for real: `asset_packages(asset_id, install_url)` (RLS on, admin-only policy, read only through `use_download_token`) holds the Wix redemption URL from each template's "Download shareable file" zip (that zip is just a redirect page to this URL). Still to do: seller package upload to private Supabase Storage for everything else.
 3. **Layer 1 scanners** — `submit_asset` fabricates results; wire real malware scan / link check / lint / plagiarism detection.
 4. **GHL API** — import modal simulates OAuth + `POST /v1/locations/{id}/snapshots/load`; wire the real Snapshot API + share-link fallback.

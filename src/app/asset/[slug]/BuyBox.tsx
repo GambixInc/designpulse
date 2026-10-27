@@ -104,7 +104,7 @@ export default function BuyBox({
         )}
         <li>🔑 Unique license key issued per purchase</li>
         <li>↩ 7-day refund window for verifiable technical defects</li>
-        <li>💳 Checkout simulated in this MVP (Stripe Connect in production)</li>
+        <li>💳 Secure checkout by Stripe</li>
       </ul>
     </div>
   );

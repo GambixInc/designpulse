@@ -15,10 +15,10 @@ export default async function Navbar() {
         </Link>
         <div className="hidden md:flex items-center gap-5 text-sm text-muted">
           <Link href="/marketplace" className="hover:text-ink">Templates</Link>
-          <span className="inline-flex items-center gap-1.5 text-faint cursor-default">
-            Plugins
-            <span className="badge border-line text-faint text-[10px]">Soon</span>
-          </span>
+          <Link href="/ai" className="inline-flex items-center gap-1.5 hover:text-ink">
+            AI Hub
+            <span className="badge border-accent/40 text-accent text-[10px]">New</span>
+          </Link>
           <Link href="/marketplace?platform=ghl" className="hover:text-ink">GHL Assets</Link>
           <Link href="/licenses" className="hover:text-ink">Licenses</Link>
           <Link href="/sell" className="hover:text-ink">Sell on DesignPulse</Link>

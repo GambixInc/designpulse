@@ -104,7 +104,9 @@ export default async function MarketplacePage({
 
       {assets.length === 0 ? (
         <div className="card p-12 text-center text-muted">
-          No assets match those filters yet.
+          {searchParams.platform
+            ? "Nothing on this platform yet. The first products are in build; every listing here ships a real, tested file."
+            : "No assets match those filters yet."}
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Logo from "@/components/Logo";
+import { LEGAL, LEGAL_PAGES } from "@/lib/legal";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -30,10 +31,15 @@ const FOOTER_COLS: { title: string; links: [string, string][] }[] = [
     title: "Company",
     links: [
       ["About Gambix", "/marketplace"],
+      ["AI Hub", "/ai"],
       ["Sell with us", "/sell"],
       ["Licenses", "/licenses"],
       ["Support", "/dashboard"],
     ],
+  },
+  {
+    title: "Legal",
+    links: LEGAL_PAGES.map((p): [string, string] => [p.label, p.href]),
   },
 ];
 
@@ -47,7 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Navbar />
         <main className="min-h-[80vh]">{children}</main>
         <footer className="border-t border-line mt-20">
-          <div className="mx-auto max-w-7xl px-4 py-12 grid gap-10 sm:grid-cols-3">
+          <div className="mx-auto max-w-7xl px-4 py-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <Logo className="h-6" />
               <p className="mt-3 text-sm text-faint max-w-xs">
@@ -73,8 +79,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             ))}
           </div>
           <div className="border-t border-line py-5 text-center text-xs text-faint">
-            MVP demo build · Payments simulated (Stripe Connect stubbed) · ©{" "}
-            {new Date().getFullYear()} Gambix
+            © {new Date().getFullYear()} {LEGAL.entity}. {LEGAL.brand} is a Gambix
+            company.
           </div>
         </footer>
       </body>

@@ -1,8 +1,10 @@
 "use client";
 import { useEffect, useState, Suspense } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { money, LICENSE_INFO } from "@/lib/format";
+import { money, LICENSE_INFO, REFUND_WINDOW_DAYS } from "@/lib/format";
+import { LEGAL } from "@/lib/legal";
 
 type LineItem = {
   license_id: string;
@@ -114,15 +116,115 @@ function GhlOAuthStep({
   );
 }
 
+const CHECKOUT_ERRORS: [string, string][] = [
+  ["STRIPE_NOT_CONFIGURED", "Payments are not switched on yet. Please check back soon."],
+  ["THIRD_PARTY_UNAVAILABLE", "Items from marketplace sellers are not on sale yet."],
+  ["GHL_OAUTH_REQUIRED", "Connect your Go High Level sub-account above to complete this purchase."],
+  ["TERMS_REQUIRED", "Please accept the Terms of Sale to continue."],
+  ["STRIPE_ERROR", "Our payment provider could not start checkout. Please try again in a minute."],
+];
+
+function checkoutErrorMessage(message: string): string {
+  return CHECKOUT_ERRORS.find(([code]) => message.startsWith(code))?.[1] ?? message;
+}
+
+type StripePayCardProps = {
+  licenseId: string;
+  totalCents: number;
+  ghlConnectionId: string | null;
+  disabled: boolean;
+  isGhl: boolean;
+};
+
+/**
+ * Hands the buyer to Stripe-hosted Checkout. start_checkout prices the cart in
+ * Postgres and records which Terms version the buyer accepted; the browser
+ * only sends license ids.
+ */
+function StripePayCard(props: StripePayCardProps) {
+  const [agreed, setAgreed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const pay = async () => {
+    setBusy(true);
+    setError(null);
+    const { data, error } = await createClient().rpc("start_checkout", {
+      p_license_ids: [props.licenseId],
+      p_ghl_connection_id: props.ghlConnectionId,
+      p_origin: window.location.origin,
+      p_terms_version: LEGAL.termsVersion,
+    });
+    if (error || typeof data !== "string") {
+      setError(checkoutErrorMessage(error?.message ?? "Checkout could not start."));
+      setBusy(false);
+      return;
+    }
+    window.location.assign(data);
+  };
+
+  return (
+    <div className={`card p-5 ${props.disabled ? "opacity-50 pointer-events-none" : ""}`}>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-semibold text-ink">Payment</h2>
+        <span className="badge border-line text-muted">Secure checkout by Stripe</span>
+      </div>
+      <TermsConsent checked={agreed} onChange={setAgreed} />
+      {error && <p className="text-sm text-red-500 mt-3">{error}</p>}
+      <button
+        onClick={pay}
+        disabled={busy || props.disabled || !agreed}
+        className="btn-primary w-full mt-5 py-3"
+      >
+        {busy ? "Opening secure checkout…" : `Pay ${money(props.totalCents)}`}
+      </button>
+      <p className="mt-3 text-xs text-faint text-center">
+        {props.isGhl
+          ? "You pay on Stripe's secure page; the snapshot import starts once payment clears."
+          : "You pay on Stripe's secure page. Card details never reach DesignPulse."}
+      </p>
+    </div>
+  );
+}
+
+function TermsConsent({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex gap-3 items-start text-sm text-muted cursor-pointer">
+      <input
+        type="checkbox"
+        className="mt-1 h-4 w-4 accent-accent"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <span>
+        I agree to the{" "}
+        <Link href="/legal/terms" target="_blank" className="text-accent hover:underline">
+          Terms of Sale
+        </Link>{" "}
+        and{" "}
+        <Link href="/legal/license" target="_blank" className="text-accent hover:underline">
+          License
+        </Link>
+        . I ask for immediate access to this digital product and understand that
+        once delivery starts I lose any statutory right to cancel; the{" "}
+        <Link href="/legal/refunds" target="_blank" className="text-accent hover:underline">
+          {REFUND_WINDOW_DAYS}-day defect refund policy
+        </Link>{" "}
+        still applies.
+      </span>
+    </label>
+  );
+}
+
 function CheckoutInner() {
   const params = useSearchParams();
   const router = useRouter();
   const licenseId = params.get("license");
+  const canceled = params.get("canceled") === "1";
   const [item, setItem] = useState<LineItem | null>(null);
   const [connections, setConnections] = useState<GhlConnection[]>([]);
   const [ghlConnectionId, setGhlConnectionId] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -135,7 +237,7 @@ function CheckoutInner() {
         router.push(`/login?next=${encodeURIComponent(`/checkout?license=${licenseId}`)}`);
         return;
       }
-      const [{ data }, { data: conns }] = await Promise.all([
+      const [{ data, error }, { data: conns }] = await Promise.all([
         supabase
           .from("asset_licenses")
           .select("id, tier, price_cents, assets(title, categories(platform))")
@@ -147,19 +249,21 @@ function CheckoutInner() {
           .eq("status", "active")
           .order("connected_at", { ascending: false }),
       ]);
-      if (data) {
-        const a = data.assets as unknown as {
-          title?: string;
-          categories?: { platform?: string };
-        } | null;
-        setItem({
-          license_id: data.id,
-          tier: data.tier,
-          price_cents: data.price_cents,
-          title: a?.title ?? "",
-          platform: a?.categories?.platform ?? "",
-        });
+      if (error || !data) {
+        setLoadError("This item is not available to buy right now.");
+        return;
       }
+      const a = data.assets as unknown as {
+        title?: string;
+        categories?: { platform?: string };
+      } | null;
+      setItem({
+        license_id: data.id,
+        tier: data.tier,
+        price_cents: data.price_cents,
+        title: a?.title ?? "",
+        platform: a?.categories?.platform ?? "",
+      });
       setConnections((conns as GhlConnection[]) ?? []);
     })();
   }, [licenseId, router]);
@@ -170,37 +274,18 @@ function CheckoutInner() {
     connections.find((c) => c.id === ghlConnectionId)?.location_name ??
     "Connected sub-account";
 
-  const pay = async () => {
-    if (!item || !ghlSatisfied) return;
-    setBusy(true);
-    setError(null);
-    const supabase = createClient();
-    // Production: create Stripe Checkout Session here (destination charge,
-    // 15% application_fee via Stripe Connect) and redirect to Stripe-hosted page.
-    // MVP: server-side RPC validates prices, the GHL OAuth gate, and creates
-    // the order atomically.
-    const { data, error } = await supabase.rpc("checkout", {
-      p_license_ids: [item.license_id],
-      p_ghl_connection_id: ghlConnectionId,
-    });
-    if (error) {
-      setError(
-        error.message.startsWith("GHL_OAUTH_REQUIRED")
-          ? "Connect your Go High Level sub-account above to complete this purchase."
-          : error.message
-      );
-      setBusy(false);
-    } else {
-      router.push(`/checkout/success/${data}`);
-    }
-  };
-
   if (!licenseId) return <p className="text-center py-20 text-muted">No item selected.</p>;
+  if (loadError) return <p className="text-center py-20 text-muted">{loadError}</p>;
   if (!item) return <p className="text-center py-20 text-muted">Loading order…</p>;
 
   return (
     <div className="mx-auto max-w-lg px-4 py-14">
       <h1 className="text-2xl font-bold tracking-tight text-ink mb-6">Checkout</h1>
+      {canceled && (
+        <p className="card p-4 mb-5 text-sm text-muted">
+          Payment canceled. You have not been charged.
+        </p>
+      )}
       <div className="card p-5 mb-5">
         <div className="flex justify-between text-sm">
           <div>
@@ -230,43 +315,13 @@ function CheckoutInner() {
           <GhlOAuthStep connections={connections} onConnected={setGhlConnectionId} />
         ))}
 
-      <div className={`card p-5 ${ghlSatisfied ? "" : "opacity-50 pointer-events-none"}`}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-ink">Payment</h2>
-          <span className="badge border-amber-500/40 text-amber-500">
-            Simulated — no charge
-          </span>
-        </div>
-        <div className="space-y-3 opacity-80">
-          <div>
-            <label className="label">Card number</label>
-            <input className="input" defaultValue="4242 4242 4242 4242" readOnly />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Expiry</label>
-              <input className="input" defaultValue="12/29" readOnly />
-            </div>
-            <div>
-              <label className="label">CVC</label>
-              <input className="input" defaultValue="424" readOnly />
-            </div>
-          </div>
-        </div>
-        {error && <p className="text-sm text-red-500 mt-3">{error}</p>}
-        <button
-          onClick={pay}
-          disabled={busy || !ghlSatisfied}
-          className="btn-primary w-full mt-5 py-3"
-        >
-          {busy ? "Processing…" : `Pay ${money(item.price_cents)}`}
-        </button>
-        <p className="mt-3 text-xs text-faint text-center">
-          {isGhl
-            ? "After payment the snapshot import starts automatically — finish the conflict check in your library."
-            : "In production this is a Stripe-hosted checkout. The buyer pays the full price; Stripe routes 85% to the seller and retains Gambix's 15% fee."}
-        </p>
-      </div>
+      <StripePayCard
+        licenseId={item.license_id}
+        totalCents={item.price_cents}
+        ghlConnectionId={ghlConnectionId}
+        disabled={!ghlSatisfied}
+        isGhl={isGhl}
+      />
     </div>
   );
 }

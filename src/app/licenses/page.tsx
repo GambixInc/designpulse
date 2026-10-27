@@ -63,6 +63,15 @@ export default function LicensesPage() {
           in-house team; change-of-mind requests are not eligible. The window is
           enforced automatically at the system level.
         </p>
+        <p className="mt-3 text-sm">
+          <Link href="/legal/license" className="text-accent hover:underline">
+            Full license agreement
+          </Link>
+          {" · "}
+          <Link href="/legal/refunds" className="text-accent hover:underline">
+            Refund policy
+          </Link>
+        </p>
       </div>
 
       <p className="mt-8 text-center">

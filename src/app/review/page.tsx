@@ -159,6 +159,31 @@ function ReviewPanel({
   );
 }
 
+/** Approving records the refund in DesignPulse; the money goes back by hand in
+ *  Stripe. Reviewers cannot read orders, so only admins see the payment link. */
+function StripeRefundNote({ paymentRef }: { paymentRef: string | null }) {
+  return (
+    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+      Approving does not move money. Refund the buyer in Stripe too
+      {paymentRef?.startsWith("pi_") ? (
+        <>
+          :{" "}
+          <a
+            href={`https://dashboard.stripe.com/payments/${paymentRef}`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent hover:underline"
+          >
+            open payment in Stripe ↗
+          </a>
+        </>
+      ) : (
+        "."
+      )}
+    </p>
+  );
+}
+
 function RefundTicket({ ticket, onDone }: { ticket: Row; onDone: () => void }) {
   const supabase = createClient();
   const [notes, setNotes] = useState("");
@@ -230,6 +255,7 @@ function RefundTicket({ ticket, onDone }: { ticket: Row; onDone: () => void }) {
             {money(item?.seller_earnings_cents ?? 0)} seller payout · counts toward the
             seller&apos;s refund rate.
           </p>
+          <StripeRefundNote paymentRef={item?.orders?.payment_ref ?? null} />
         </div>
         <div className="w-full sm:w-64 space-y-2">
           <input
@@ -300,7 +326,7 @@ export default function ReviewDeskPage() {
       supabase
         .from("refund_requests")
         .select(
-          "*, order_items(price_cents, commission_cents, seller_earnings_cents, assets(title))"
+          "*, order_items(price_cents, commission_cents, seller_earnings_cents, assets(title), orders(payment_ref))"
         )
         .eq("status", "open")
         .order("created_at"),

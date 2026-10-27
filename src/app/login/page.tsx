@@ -1,20 +1,18 @@
 "use client";
 import { useState, Suspense } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-const DEMO_ACCOUNTS = [
-  { label: "Demo buyer", email: "buyer@designpulse.demo", hint: "Browse, buy, download" },
-  { label: "Demo seller", email: "seller@designpulse.demo", hint: "Upload & track sales" },
-  { label: "Demo reviewer", email: "reviewer@designpulse.demo", hint: "Review desk & refund tickets" },
-  { label: "Demo admin", email: "admin@designpulse.demo", hint: "Sellers, catalog & analytics" },
-];
-const DEMO_PASSWORD = "designpulse-demo";
+/** Only same-site paths, so ?next= cannot bounce users to another domain. */
+function safeNext(raw: string | null): string {
+  return raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/dashboard";
+}
 
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") ?? "/dashboard";
+  const next = safeNext(params.get("next"));
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,16 +21,14 @@ function LoginForm() {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const go = async (e?: React.FormEvent, demoEmail?: string) => {
-    e?.preventDefault();
+  const go = async (e: React.FormEvent) => {
+    e.preventDefault();
     setBusy(true);
     setError(null);
     const supabase = createClient();
-    const creds = demoEmail
-      ? { email: demoEmail, password: DEMO_PASSWORD }
-      : { email, password };
+    const creds = { email, password };
 
-    if (mode === "signup" && !demoEmail) {
+    if (mode === "signup") {
       const { data, error } = await supabase.auth.signUp({
         ...creds,
         options: { data: { full_name: name } },
@@ -86,6 +82,14 @@ function LoginForm() {
         <button disabled={busy} className="btn-primary w-full py-2.5">
           {busy ? "Working…" : mode === "signin" ? "Sign in" : "Sign up"}
         </button>
+        {mode === "signup" && (
+          <p className="text-xs text-faint">
+            By creating an account you agree to the{" "}
+            <Link href="/legal/terms" className="text-accent hover:underline">Terms</Link>{" "}
+            and{" "}
+            <Link href="/legal/privacy" className="text-accent hover:underline">Privacy Policy</Link>.
+          </p>
+        )}
         <p className="text-center text-sm text-faint">
           {mode === "signin" ? "No account?" : "Already registered?"}{" "}
           <button
@@ -97,25 +101,6 @@ function LoginForm() {
           </button>
         </p>
       </form>
-
-      <div className="mt-6">
-        <p className="text-center text-xs uppercase tracking-widest text-faint mb-3">
-          Or explore with a demo account
-        </p>
-        <div className="grid gap-2">
-          {DEMO_ACCOUNTS.map((d) => (
-            <button
-              key={d.email}
-              disabled={busy}
-              onClick={() => go(undefined, d.email)}
-              className="btn-ghost justify-between"
-            >
-              <span>{d.label}</span>
-              <span className="text-xs text-faint">{d.hint}</span>
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

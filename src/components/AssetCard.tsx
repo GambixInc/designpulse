@@ -64,7 +64,7 @@ export default function AssetCard({ asset }: AssetCardProps) {
               <span className="text-faint">({asset.rating_count})</span>
             </span>
           )}
-          <span>{asset.sales_count} sales</span>
+          {asset.sales_count > 0 && <span>{asset.sales_count} sales</span>}
           {asset.is_first_party && (
             <span className="badge border-accent/30 text-accent bg-accent-soft/60 ml-auto">
               Gambix Official

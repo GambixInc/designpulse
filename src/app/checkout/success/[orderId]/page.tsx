@@ -5,6 +5,13 @@ import { money } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
+type SuccessItem = {
+  id: string;
+  license_tier: string;
+  price_cents: number;
+  assets: { title: string } | null;
+};
+
 export default async function SuccessPage({
   params,
 }: {
@@ -19,7 +26,8 @@ export default async function SuccessPage({
 
   if (!order) notFound();
 
-  const itemIds = (order.order_items ?? []).map((oi: { id: string }) => oi.id);
+  const items = (order.order_items ?? []) as unknown as SuccessItem[];
+  const itemIds = items.map((oi) => oi.id);
   const { count: pendingImports } = await supabase
     .from("ghl_imports")
     .select("id", { count: "exact", head: true })
@@ -33,11 +41,11 @@ export default async function SuccessPage({
       </div>
       <h1 className="text-3xl font-bold text-ink">Order confirmed</h1>
       <p className="mt-2 text-muted">
-        Your license keys and download links are ready in your library. A receipt
-        email is sent in production.
+        Your license keys and download links are ready in your library. Stripe
+        emails your receipt to the address on your account.
       </p>
       <div className="card p-5 mt-8 text-left">
-        {(order.order_items ?? []).map((oi: any) => (
+        {items.map((oi) => (
           <div key={oi.id} className="flex justify-between text-sm py-1.5">
             <span className="text-muted">
               {oi.assets?.title}{" "}

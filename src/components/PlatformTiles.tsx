@@ -3,7 +3,7 @@ import Link from "next/link";
 import { PLATFORM_META } from "@/lib/format";
 
 function countLabel(platform: string, count: number | undefined) {
-  if (count === undefined) return null;
+  if (!count) return "In build";
   const noun = platform === "ghl" ? "snapshot" : "template";
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }

@@ -20,10 +20,10 @@ export default async function HomePage() {
   ]);
 
   const stats: [string, string][] = [
-    [`${catalogCount}+`, "curated templates & snapshots"],
-    ["5", "platforms covered"],
+    [`${catalogCount}`, catalogCount === 1 ? "template ready to launch" : "templates ready to launch"],
     ["100%", "human-reviewed before listing"],
-    ["7-day", "defect refund guarantee"],
+    ["7-day", "defect refund window"],
+    ["Stripe", "secure checkout"],
   ];
 
   return (
@@ -39,9 +39,9 @@ export default async function HomePage() {
           <span className="text-accent">Zero quality roulette.</span>
         </h1>
         <p className="mt-5 max-w-2xl mx-auto text-muted text-lg">
-          Curated design templates for Wix Studio, Webflow, WordPress, and
-          Shopify — plus Go High Level snapshots delivered straight into your
-          sub-account.
+          Wix Studio templates built for local service businesses, with
+          WordPress themes, Go High Level snapshots and AI front-desk kits
+          in build.
         </p>
         <form
           action="/marketplace"
