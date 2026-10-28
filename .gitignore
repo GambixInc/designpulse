@@ -3,3 +3,8 @@ node_modules
 .env*.local
 .vercel
 .env*
+
+# Product source lives in the private repo GambixInc/designpulse-studio.
+# Never commit it here: this repository is public.
+/studio/
+/themes/

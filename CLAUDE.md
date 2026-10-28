@@ -6,6 +6,8 @@ Two-sided digital asset marketplace by Gambix selling design templates (Wix Stud
 
 ## Live infrastructure
 
+- **Product source (private):** https://github.com/GambixInc/designpulse-studio, cloned at `~/Projects/designpulse-studio`. It holds `studio/` (Wix template designs, Pulse Core, page generator, Wix build guides, `tools/pagecheck.html`), `themes/shopify/` (the Tincture theme) and `docs/NEXT-PHASE.md` (roadmap and handoff). This repo is public, so those files must never be committed here; `.gitignore` blocks `/studio/` and `/themes/`.
+
 - **Production:** https://designpulse-seven.vercel.app
 - **GitHub:** https://github.com/GambixInc/designpulse (public), connected to Vercel — pushing `main` auto-deploys to production. `gh` CLI authed as `Gambixteam` on this machine (scopes: repo, read:org); git push uses gh's credential helper.
 - **Vercel:** project `designpulse`, team `gambix1` (Gambix). Linked via `.vercel/project.json`. Preferred deploy: `git push` (CI from GitHub). Manual fallback: `npx vercel deploy --prod --yes` (CLI logged in as `gambixteam`).
@@ -68,7 +70,7 @@ Early migrations were applied via the Supabase MCP (`designpulse_core_schema`, `
 - `src/components/GhlImportFlow.tsx` — conflict check → confirm → snapshot push (RPCs: `run_ghl_conflict_check`, `confirm_ghl_import`)
 - `src/components/RefundModal.tsx` — structured refund ticket (reason dropdown, proof upload, `request_refund` RPC)
 - `src/app/login/page.tsx` — email/password sign-in and sign-up (`?next=` limited to same-site paths)
-- `middleware.ts` — Supabase session refresh (excludes `/api/download`)
+- `middleware.ts` — Supabase session refresh (excludes `/api/download` and `/api/stripe`)
 
 New RPCs (2026-07-05): `request_refund`, `connect_ghl_account`, `run_ghl_conflict_check`, `confirm_ghl_import`, `is_reviewer`, `log_review_action` (internal-only; EXECUTE revoked from anon/authenticated). `checkout` now takes `p_ghl_connection_id` and refuses GHL items without it. `review_submission` takes `p_internal_note` (stored only in the staff-only `review_audit_log`). Design tokens are CSS variables in `globals.css` (light `:root` / `.dark`), mapped in `tailwind.config.ts` — use `ink/muted/faint/line/card/canvas/accent`, never raw slate/ink-950 classes.
 
