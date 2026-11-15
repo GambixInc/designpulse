@@ -35,6 +35,13 @@ export const PLATFORM_META: Record<
     color: "bg-violet-500/10 text-violet-600 dark:text-violet-300 border-violet-500/30",
     gradient: "from-violet-400 to-fuchsia-500",
   },
+  automation: {
+    logo: "/platforms/automation.svg",
+    invertOnDark: true,
+    label: "AI & Automation",
+    color: "bg-rose-500/10 text-rose-600 dark:text-rose-300 border-rose-500/30",
+    gradient: "from-rose-400 to-orange-500",
+  },
 };
 
 export function money(cents: number) {
@@ -146,6 +153,16 @@ export const CONNECTOR_META: Record<
       "Authorize DesignPulse via Shopify OAuth (opens Shopify's consent screen).",
       "We push the theme to your store's theme library via the Themes API.",
       "Preview, then publish from your Shopify admin when you're ready.",
+    ],
+  },
+  automation: {
+    method: "Instant download",
+    cta: "Download pack",
+    steps: [
+      "Download the pack: workflow files, setup guide and sample data.",
+      "Import each workflow into your own n8n (or open the kit in Claude or ChatGPT).",
+      "Connect your accounts as the setup guide lists, one credential at a time.",
+      "Run the included test with the sample data before switching it on.",
     ],
   },
   ghl: {

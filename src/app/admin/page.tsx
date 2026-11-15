@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { money, dateFmt } from "@/lib/format";
+import AssetFilesPanel from "@/components/AssetFilesPanel";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
@@ -26,6 +27,7 @@ export default function AdminPage() {
   const [refundMetrics, setRefundMetrics] = useState<Map<string, Row>>(new Map());
   const [refunds, setRefunds] = useState<Row[]>([]);
   const [catalog, setCatalog] = useState<Row[]>([]);
+  const [filesFor, setFilesFor] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const {
@@ -137,6 +139,13 @@ export default function AdminPage() {
       .from("assets")
       .update({ status: "delisted" })
       .eq("id", id);
+    if (error) alert(error.message);
+    else load();
+  };
+
+  const publish = async (id: string) => {
+    if (!confirm("Publish this asset to the storefront? It must already have its files uploaded.")) return;
+    const { error } = await supabase.rpc("admin_publish_asset", { p_asset: id });
     if (error) alert(error.message);
     else load();
   };
@@ -334,6 +343,16 @@ export default function AdminPage() {
               >
                 {a.is_featured ? "★ Featured" : "☆ Feature"}
               </button>
+              {a.is_first_party && (
+                <button onClick={() => setFilesFor(filesFor === a.id ? null : a.id)} className="btn-ghost">
+                  {filesFor === a.id ? "Hide files" : "Files"}
+                </button>
+              )}
+              {a.is_first_party && a.status === "draft" && (
+                <button onClick={() => publish(a.id)} className="btn-primary">
+                  Publish
+                </button>
+              )}
               {a.status === "approved" && (
                 <button
                   onClick={() => delist(a.id)}
@@ -342,6 +361,7 @@ export default function AdminPage() {
                   Delist
                 </button>
               )}
+              {filesFor === a.id && <AssetFilesPanel assetId={a.id} />}
             </div>
           ))}
         </div>

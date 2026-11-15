@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import JSZip from "jszip";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase/config";
 
@@ -18,9 +18,9 @@ type DownloadGrant = {
 /**
  * Secure file delivery (PRD §9): time-limited tokenized URLs.
  * The token is validated + consumed server-side; expired or exhausted tokens 403.
- * Assets with a stored install URL (e.g. a Wix template redemption link) ship
- * that link; everything else still gets the MVP placeholder bundle until
- * seller package uploads to private storage land.
+ * Assets with stored files (asset_files, read only through token-checked
+ * RPCs) ship those files; assets with a stored install URL (a Wix template
+ * redemption link) ship that link; anything else still gets the placeholder.
  */
 export async function GET(
   _req: NextRequest,
@@ -41,9 +41,15 @@ export async function GET(
 
   const zip = new JSZip();
   zip.file("LICENSE.txt", licenseText(grant.license_tier));
-  if (grant.install_url) {
+  let files = 0;
+  try {
+    files = await addStoredFiles(zip, supabase, params.token);
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 502 });
+  }
+  if (files === 0 && grant.install_url) {
     addInstallLink(zip, grant, grant.install_url);
-  } else {
+  } else if (files === 0) {
     addPlaceholder(zip, grant);
   }
 
@@ -54,6 +60,26 @@ export async function GET(
       "Content-Disposition": `attachment; filename="${grant.asset_slug}-designpulse.zip"`,
     },
   });
+}
+
+type Manifest = { ok: boolean; error?: string; files?: { path: string; bytes: number }[] };
+type StoredFile = { ok: boolean; error?: string; path: string; data: string };
+
+/** Adds every stored file for the token's asset; returns how many there were. */
+async function addStoredFiles(zip: JSZip, supabase: SupabaseClient, token: string): Promise<number> {
+  const { data, error } = await supabase.rpc("download_manifest", { p_token: token });
+  // PGRST202: the function is not deployed yet; behave as before file storage.
+  if (error?.code === "PGRST202") return 0;
+  if (error) throw new Error("Could not list the files; try the link again");
+  const manifest = data as Manifest | null;
+  if (!manifest?.ok) return 0;
+  for (const f of manifest.files ?? []) {
+    const res = await supabase.rpc("download_file", { p_token: token, p_path: f.path });
+    const file = res.data as StoredFile | null;
+    if (res.error || !file?.ok) throw new Error(`Could not read ${f.path}; try the link again`);
+    zip.file(file.path, file.data, { base64: true });
+  }
+  return manifest.files?.length ?? 0;
 }
 
 function licenseText(tier: string): string {

@@ -6,7 +6,8 @@ import { CONNECTOR_META, PLATFORM_META } from "@/lib/format";
  * Platform connector delivery flows (PRD §5). Wix Studio and Webflow have no
  * install API, so those are guided experiences; Shopify simulates its OAuth
  * app-install flow; WordPress ships the bundled one-click demo importer.
- * GHL is handled separately by GhlImportFlow (snapshot push).
+ * AI & Automation packs are a plain download. GHL is handled separately by
+ * GhlImportFlow (snapshot push).
  */
 export default function DeliveryModal({
   platform,
@@ -74,13 +75,15 @@ export default function DeliveryModal({
           </a>
         )}
 
-        {(platform === "wix_studio" || platform === "wordpress") && (
+        {(platform === "wix_studio" || platform === "wordpress" || platform === "automation") && (
           <button onClick={download} disabled={busy} className="btn-primary w-full">
             {busy
               ? "Preparing package…"
               : platform === "wordpress"
                 ? "⬇ Download theme + demo importer"
-                : "⬇ Download export + install guide"}
+                : platform === "automation"
+                  ? "⬇ Download pack + setup guide"
+                  : "⬇ Download export + install guide"}
           </button>
         )}
 

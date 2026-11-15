@@ -25,6 +25,7 @@ const FOOTER_COLS: { title: string; links: [string, string][] }[] = [
       ["WordPress", "/marketplace?platform=wordpress"],
       ["Shopify", "/marketplace?platform=shopify"],
       ["GHL Snapshots", "/marketplace?platform=ghl"],
+      ["AI & Automation", "/marketplace?platform=automation"],
     ],
   },
   {

@@ -47,6 +47,8 @@ Early migrations were applied via the Supabase MCP (`designpulse_core_schema`, `
 
 **Payments (2026-10-27):** real Stripe Checkout, verified in Postgres. `start_checkout` → Stripe-hosted page → `fulfill_checkout` (success page + `/api/stripe/webhook`). The Stripe restricted key lives only in Supabase Vault (`stripe_secret_key`), called through the `http` extension; the webhook needs `STRIPE_WEBHOOK_SECRET` in Vercel. The old simulated `checkout()` is revoked. Refunds are manual in the Stripe Dashboard after approval on /review. Owner setup: `docs/STRIPE-SETUP.md`.
 
+**AI & Automation (2026-11-15, migrations written, not yet applied):** new `platform_type` value `automation` and categories `n8n-workflows` and `ai-agent-kits`. Files a buyer downloads live in `asset_files` (bytea, RLS on, no policies), readable only through `download_manifest`/`download_file` with a live download token; admins upload on /admin > Catalog > Files (zips are unpacked) via `admin_put_asset_file`, then press Publish (`admin_publish_asset` refuses assets with no files). Seven draft listings (six n8n packs, Local Marketing Skills) are in `20261115120200_ai_automation_listings.sql`; the packs themselves are built in the studio repo under `automation/`.
+
 **Catalog (2026-10-27):** the 80 seeded placeholder listings (invented sales and ratings, no files) are `delisted`. Only Restoria, Overhead and Sentris are approved. Do not relist anything that does not ship a real, tested file.
 
 ## File map
@@ -66,6 +68,7 @@ Early migrations were applied via the Supabase MCP (`designpulse_core_schema`, `
 - `src/app/admin/page.tsx` — seller tiers (+ refund-rate flags), refund queue, catalog/featured, GMV stats; Layer 2 review lives on the review desk
 - `src/app/review/page.tsx` — reviewer/admin-only desk: submission queue with business-day SLA badges, 5-criterion rubric, seller feedback vs. staff-only internal notes, refund tickets, audit log
 - `src/app/licenses/page.tsx` — Standard/Extended comparison + refund policy
+- `src/components/AssetFilesPanel.tsx` — admin upload/list/remove of an asset's download files
 - `src/components/DeliveryModal.tsx` — per-platform install connectors (Wix guided, Webflow clone link, WP demo importer, Shopify OAuth sim)
 - `src/components/GhlImportFlow.tsx` — conflict check → confirm → snapshot push (RPCs: `run_ghl_conflict_check`, `confirm_ghl_import`)
 - `src/components/RefundModal.tsx` — structured refund ticket (reason dropdown, proof upload, `request_refund` RPC)
