@@ -116,13 +116,13 @@ export const CONNECTOR_META: Record<
   { method: string; cta: string; steps: string[] }
 > = {
   wix_studio: {
-    method: "Guided manual install",
-    cta: "Get install guide",
+    method: "Wix template link",
+    cta: "Get template link",
     steps: [
-      "Download the template export package below.",
-      "Open Wix Studio and create a new site from a blank template.",
-      "Follow the included INSTALL.md to import sections, pages, and styles.",
-      "Apply your content — the guide maps every placeholder.",
+      "Download the ZIP below: it holds “Use this template.html”, step-by-step instructions and your license.",
+      "Open “Use this template.html” and sign in to Wix, or create a free Wix account.",
+      "Click “Add Site” (some Wix screens say “Use Template”) to add the template to your account as a new site.",
+      "Edit it in the Wix editor it was built with (Studio Editor or Studio Two), then replace the demo text and photos with your own.",
     ],
   },
   webflow: {

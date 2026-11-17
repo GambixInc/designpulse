@@ -83,7 +83,7 @@ export default function DeliveryModal({
                 ? "⬇ Download theme + demo importer"
                 : platform === "automation"
                   ? "⬇ Download pack + setup guide"
-                  : "⬇ Download export + install guide"}
+                  : "⬇ Download template link + instructions"}
           </button>
         )}
 
