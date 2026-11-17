@@ -63,7 +63,7 @@ Early migrations were applied via the Supabase MCP (`designpulse_core_schema`, `
 - `src/app/legal/*` + `src/components/LegalDoc.tsx` + `src/lib/legal.ts` — Terms, License, Refunds, Privacy, Acceptable use & AI, Seller terms (Gambix LLC; fill the null fields in `legal.ts`)
 - `src/app/ai/page.tsx` + `src/lib/ai-hub.ts` + `src/components/AiWaitlistForm.tsx` — AI Hub and early-access list (`ai_waitlist`); strategy in `docs/AI-HUB.md`
 - `src/app/dashboard/page.tsx` — buyer library: downloads, license keys, reviews, refunds, simulated GHL import modal (PRD §8 flow)
-- `src/app/api/download/[token]/route.ts` — validates token via RPC; ships a "Use this template.html" + instructions + LICENSE when the asset has an `install_url`, otherwise the generated placeholder ZIP
+- `src/app/api/download/[token]/route.ts` — validates token via RPC; ships LICENSE.txt plus the asset's stored files (`asset_files`) and, when the asset has an `install_url`, "Use this template.html" + Instructions.txt (both can ship together); the generated placeholder ZIP only when it has neither
 - `src/app/sell/page.tsx` (application), `sell/dashboard/page.tsx` (analytics, submissions), `sell/upload/page.tsx` (upload → `submit_asset`)
 - `src/app/admin/page.tsx` — seller tiers (+ refund-rate flags), refund queue, catalog/featured, GMV stats; Layer 2 review lives on the review desk
 - `src/app/review/page.tsx` — reviewer/admin-only desk: submission queue with business-day SLA badges, 5-criterion rubric, seller feedback vs. staff-only internal notes, refund tickets, audit log

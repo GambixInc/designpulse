@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import JSZip from "jszip";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase/config";
+import { REFUND_WINDOW_DAYS } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,8 @@ type DownloadGrant = {
  * The token is validated + consumed server-side; expired or exhausted tokens 403.
  * Assets with stored files (asset_files, read only through token-checked
  * RPCs) ship those files; assets with a stored install URL (a Wix template
- * redemption link) ship that link; anything else still gets the placeholder.
+ * redemption link) ship that link, alongside any stored files; anything with
+ * neither still gets the placeholder.
  */
 export async function GET(
   req: NextRequest,
@@ -47,7 +49,9 @@ export async function GET(
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 502 });
   }
-  if (files === 0 && grant.install_url) {
+  // Written after the stored files, so the link page and its instructions win
+  // over any stored file with the same name.
+  if (grant.install_url) {
     addInstallLink(zip, grant, grant.install_url);
   } else if (files === 0) {
     addPlaceholder(zip, grant);
@@ -119,10 +123,22 @@ function addInstallLink(zip: JSZip, grant: DownloadGrant, url: string) {
     "Use this template.html",
     `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=${href}"><title>${title}</title></head><body style="font-family:system-ui,sans-serif;padding:2rem">Opening Wix to add ${title} to your account. If nothing happens, <a href="${href}">click here</a>.</body></html>`
   );
-  zip.file(
-    "Instructions.txt",
-    `How to add ${grant.asset_title} to your Wix account\n\n1. Open "Use this template.html" from this ZIP.\n2. Log in to Wix, or sign up if you don't have an account.\n3. Agree to the terms and click "Add Site".\n4. The template is added to your account as a new site, ready to customize in the Studio Editor.\n\nNeed help? Open a ticket from your DesignPulse dashboard.\n`
-  );
+  zip.file("Instructions.txt", installInstructions(grant.asset_title, url));
+}
+
+function installInstructions(title: string, url: string): string {
+  return [
+    `How to add ${title} to your Wix account`,
+    "",
+    `1. Open "Use this template.html" from this ZIP. It opens the template's Wix link in your browser. If it does not, paste this link into your browser: ${url}`,
+    "2. Sign in to Wix, or create a free Wix account.",
+    '3. Accept Wix\'s terms if asked, then click "Add Site" (some Wix screens say "Use Template").',
+    "4. Wix adds the template to your account as a new site. It opens in the Wix editor it was built with (Studio Editor or Studio Two). A Studio Two template needs Studio Two access in your Wix account.",
+    "5. Replace the demo text and photos with your own before you publish. Connecting your own domain, taking payments or taking bookings needs a Wix premium plan.",
+    "",
+    `If the link does not open or Wix does not add the site, tell us within ${REFUND_WINDOW_DAYS} days of purchase: in your DesignPulse dashboard, click Refund on this purchase and choose "Installation or import fails".`,
+    "",
+  ].join("\n");
 }
 
 function addPlaceholder(zip: JSZip, grant: DownloadGrant) {
