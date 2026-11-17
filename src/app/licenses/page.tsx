@@ -6,7 +6,8 @@ export const metadata = { title: "Licenses & Pricing — DesignPulse" };
 const COMPARISON: [string, string, string][] = [
   ["Use in one end product (single domain)", "✓", "✓"],
   ["Use in unlimited projects", "—", "✓"],
-  ["Client work & resale rights", "—", "✓"],
+  ["Build for a client", "One client", "Any number of clients"],
+  ["Resell or share the item itself", "—", "—"],
   ["Lifetime updates for the purchased version", "✓", "✓"],
   ["Unique license key per purchase", "✓", "✓"],
   ["Priority support", "—", "✓"],

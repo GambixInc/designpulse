@@ -59,11 +59,11 @@ export function dateFmt(iso: string) {
 export const LICENSE_INFO: Record<string, { label: string; desc: string }> = {
   standard: {
     label: "Standard License",
-    desc: "Use in a single end product on a single domain. Not for client resale.",
+    desc: "Build one end product, for yourself or for one client. You may not resell or share the item itself.",
   },
   extended: {
     label: "Extended License",
-    desc: "Multi-use and client resale rights. Use in unlimited projects, including work for clients.",
+    desc: "Build unlimited end products, for yourself and any number of clients. You may not resell or share the item itself.",
   },
 };
 
