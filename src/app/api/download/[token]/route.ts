@@ -23,7 +23,7 @@ type DownloadGrant = {
  * redemption link) ship that link; anything else still gets the placeholder.
  */
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { token: string } }
 ) {
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -40,7 +40,7 @@ export async function GET(
   }
 
   const zip = new JSZip();
-  zip.file("LICENSE.txt", licenseText(grant.license_tier));
+  zip.file("LICENSE.txt", licenseText(grant.license_tier, Boolean(grant.install_url), req.nextUrl.origin));
   let files = 0;
   try {
     files = await addStoredFiles(zip, supabase, params.token);
@@ -82,12 +82,30 @@ async function addStoredFiles(zip: JSZip, supabase: SupabaseClient, token: strin
   return manifest.files?.length ?? 0;
 }
 
-function licenseText(tier: string): string {
-  return `DesignPulse ${tier === "extended" ? "Extended" : "Standard"} License\n\n${
-    tier === "extended"
-      ? "Multi-use / client resale rights. Use in unlimited end products, including projects delivered to clients."
-      : "Single end product, single domain. Not for resale or redistribution."
-  }\n\nYour unique license key is available in your DesignPulse dashboard.\nUnauthorized redistribution is detected via file fingerprinting.\n`;
+/**
+ * Plain-text summary of /legal/license. A Wix template link is one link shared
+ * by every buyer of that template, so it carries no per-buyer key or tracking.
+ */
+function licenseText(tier: string, viaWixLink: boolean, origin: string): string {
+  const extended = tier === "extended";
+  return [
+    `DesignPulse ${extended ? "Extended" : "Standard"} License`,
+    "",
+    extended
+      ? "You may use this item to build unlimited end products, for yourself and for any number of clients. You may charge clients for the end products you build and hand those end products over to them."
+      : "You may use this item to build one end product (one website, store, funnel or Go High Level sub-account), for yourself or for one client. You may modify it however you like and keep using it for as long as that end product exists.",
+    "",
+    "Neither license lets you resell, share, sublicense or give away the item itself, modified or not, including as a template, theme, kit, snapshot or share link. Neither lets you use it to train AI or to build a competing product.",
+    "",
+    "Any demo photos come from free-license libraries such as Pexels and Pixabay, and any demo names, contact details, testimonials and figures are fictional placeholders. Replace them with your own before you publish.",
+    "",
+    viaWixLink
+      ? "The Wix template link in this ZIP is the same link every buyer of this template receives. Keep it private: sharing it counts as redistributing the item."
+      : "Your license key is shown with this purchase in your DesignPulse dashboard.",
+    "",
+    `Full terms: ${origin}/legal/license`,
+    "",
+  ].join("\n");
 }
 
 function escapeAttr(value: string): string {
