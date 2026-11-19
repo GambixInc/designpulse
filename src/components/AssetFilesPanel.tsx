@@ -8,6 +8,9 @@ type StoredFile = { path: string; bytes: number; content_type: string; updated_a
 // Files are stored in Postgres (asset_files) and sent as base64 through an
 // admin-only RPC; keep packages small enough for one request.
 const MAX_BYTES = 12 * 1024 * 1024;
+// The download route builds the buyer's zip in one unstreamed response, and
+// Vercel refuses responses over 4.5 MB, so keep each asset's files under this.
+const DOWNLOAD_BUDGET = 4 * 1024 * 1024;
 
 function toBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -26,15 +29,20 @@ const TYPES: Record<string, string> = {
 };
 const typeOf = (path: string) => TYPES[path.split(".").pop()?.toLowerCase() ?? ""] ?? "application/octet-stream";
 
+async function asIs(file: File): Promise<Upload[]> {
+  return [{ path: file.name, base64: await toBase64(file), type: file.type || typeOf(file.name) }];
+}
+
 /**
  * A .zip is unpacked so the buyer gets its files, not a zip inside a zip.
  * A single top-level folder (pack-name/...) is dropped from the paths.
+ * A Shopify theme zip (layout/theme.liquid at its root) is the file the buyer
+ * uploads to Shopify, so it is stored whole.
  */
 async function toUploads(file: File, unpack: boolean): Promise<Upload[]> {
-  if (!unpack || !file.name.toLowerCase().endsWith(".zip")) {
-    return [{ path: file.name, base64: await toBase64(file), type: file.type || typeOf(file.name) }];
-  }
+  if (!unpack || !file.name.toLowerCase().endsWith(".zip")) return asIs(file);
   const zip = await JSZip.loadAsync(file);
+  if (zip.file("layout/theme.liquid")) return asIs(file);
   const entries = Object.values(zip.files).filter(
     (e) => !e.dir && !e.name.startsWith("__MACOSX/") && !e.name.endsWith(".DS_Store"),
   );
@@ -62,6 +70,7 @@ export default function AssetFilesPanel({ assetId }: { assetId: string }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [unpack, setUnpack] = useState(true);
+  const total = files.reduce((n, f) => n + f.bytes, 0);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc("admin_list_asset_files", { p_asset: assetId });
@@ -115,6 +124,11 @@ export default function AssetFilesPanel({ assetId }: { assetId: string }) {
     <div className="w-full rounded-lg border border-line p-3 mt-2 space-y-2">
       <p className="text-xs text-muted">Download files (what the buyer receives)</p>
       {files.length === 0 && <p className="text-xs text-faint">No files yet: buyers get the placeholder package.</p>}
+      {total > DOWNLOAD_BUDGET && (
+        <p className="text-xs text-red-500" role="alert">
+          These files total {kb(total)}. Downloads over about 4 MB fail on Vercel, so buyers would get an error: make the files smaller.
+        </p>
+      )}
       <ul className="space-y-1">
         {files.map((f) => (
           <li key={f.path} className="flex items-center gap-3 text-xs">
