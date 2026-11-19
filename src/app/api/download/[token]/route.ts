@@ -20,7 +20,8 @@ type DownloadGrant = {
  * Secure file delivery (PRD §9): time-limited tokenized URLs.
  * The token is validated + consumed server-side; expired or exhausted tokens 403.
  * Assets with stored files (asset_files, read only through token-checked
- * RPCs) ship those files; assets with a stored install URL (a Wix template
+ * RPCs) ship those files (a Shopify theme's files get install instructions
+ * that name the theme zip); assets with a stored install URL (a Wix template
  * redemption link) ship that link, alongside any stored files; anything with
  * neither still gets the placeholder.
  */
@@ -43,18 +44,20 @@ export async function GET(
 
   const zip = new JSZip();
   zip.file("LICENSE.txt", licenseText(grant.license_tier, Boolean(grant.install_url), req.nextUrl.origin));
-  let files = 0;
+  let paths: string[] = [];
   try {
-    files = await addStoredFiles(zip, supabase, params.token);
+    paths = await addStoredFiles(zip, supabase, params.token);
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 502 });
   }
-  // Written after the stored files, so the link page and its instructions win
-  // over any stored file with the same name.
+  // Written after the stored files, so the generated files win over any
+  // stored file with the same name.
   if (grant.install_url) {
     addInstallLink(zip, grant, grant.install_url);
-  } else if (files === 0) {
+  } else if (paths.length === 0) {
     addPlaceholder(zip, grant);
+  } else if (grant.platform === "shopify") {
+    zip.file("Install instructions.txt", shopifyInstructions(grant.asset_title, paths));
   }
 
   const buf = await zip.generateAsync({ type: "nodebuffer" });
@@ -69,21 +72,21 @@ export async function GET(
 type Manifest = { ok: boolean; error?: string; files?: { path: string; bytes: number }[] };
 type StoredFile = { ok: boolean; error?: string; path: string; data: string };
 
-/** Adds every stored file for the token's asset; returns how many there were. */
-async function addStoredFiles(zip: JSZip, supabase: SupabaseClient, token: string): Promise<number> {
+/** Adds every stored file for the token's asset; returns their paths. */
+async function addStoredFiles(zip: JSZip, supabase: SupabaseClient, token: string): Promise<string[]> {
   const { data, error } = await supabase.rpc("download_manifest", { p_token: token });
   // PGRST202: the function is not deployed yet; behave as before file storage.
-  if (error?.code === "PGRST202") return 0;
+  if (error?.code === "PGRST202") return [];
   if (error) throw new Error("Could not list the files; try the link again");
   const manifest = data as Manifest | null;
-  if (!manifest?.ok) return 0;
+  if (!manifest?.ok) return [];
   for (const f of manifest.files ?? []) {
     const res = await supabase.rpc("download_file", { p_token: token, p_path: f.path });
     const file = res.data as StoredFile | null;
     if (res.error || !file?.ok) throw new Error(`Could not read ${f.path}; try the link again`);
     zip.file(file.path, file.data, { base64: true });
   }
-  return manifest.files?.length ?? 0;
+  return (manifest.files ?? []).map((f) => f.path);
 }
 
 /**
@@ -105,7 +108,7 @@ function licenseText(tier: string, viaWixLink: boolean, origin: string): string 
     "",
     viaWixLink
       ? "The Wix template link in this ZIP is the same link every buyer of this template receives. Keep it private: sharing it counts as redistributing the item."
-      : "Your license key is shown with this purchase in your DesignPulse dashboard.",
+      : "Your license key is unique to this purchase and is shown with it in your DesignPulse dashboard. Quote it when you ask for support or updates. Keep the files in this ZIP private: sharing them counts as redistributing the item.",
     "",
     `Full terms: ${origin}/legal/license`,
     "",
@@ -137,6 +140,28 @@ function installInstructions(title: string, url: string): string {
     "5. Replace the demo text and photos with your own before you publish. Connecting your own domain, taking payments or taking bookings needs a Wix premium plan.",
     "",
     `If the link does not open or Wix does not add the site, tell us within ${REFUND_WINDOW_DAYS} days of purchase: in your DesignPulse dashboard, click Refund on this purchase and choose "Installation or import fails".`,
+    "",
+  ].join("\n");
+}
+
+/**
+ * Buyers often upload the whole download to Shopify, which rejects it
+ * ("missing template layout/theme.liquid"); this names the zip to upload.
+ */
+function shopifyInstructions(title: string, paths: string[]): string {
+  const themeZips = paths.filter((p) => p.toLowerCase().endsWith(".zip"));
+  const themeZip = themeZips.length ? `"${themeZips.join('" or "')}"` : "the theme zip";
+  return [
+    `How to install ${title} in your Shopify store`,
+    "",
+    "1. Unzip this download first. Do not upload this DesignPulse ZIP to Shopify: it is a package, not a theme, and Shopify will reject it.",
+    `2. In your Shopify admin, go to Online Store > Themes > Add theme > Upload zip file (newer admin screens say Import theme), and choose ${themeZip} from this download.`,
+    "3. Shopify adds the theme to your theme library. Open the launch guide in this download and follow it to set up menus, pages and product details.",
+    "4. Click Customize to preview the theme with your own products, then publish it when you are ready.",
+    "",
+    "Good to know: uploaded themes need a Shopify plan of Basic or higher; the Starter plan cannot install them. Demo products, photos, pages and apps are not part of the theme, so it shows your own products and images. This theme is compatible with Shopify but is not made, endorsed or supported by Shopify: support and updates come from DesignPulse.",
+    "",
+    `If the theme will not upload or install, tell us within ${REFUND_WINDOW_DAYS} days of purchase: in your DesignPulse dashboard, click Refund on this purchase and choose "Installation or import fails".`,
     "",
   ].join("\n");
 }
