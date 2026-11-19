@@ -80,6 +80,7 @@ export default async function AssetPage({ params }: { params: { slug: string } }
         <span className="font-medium text-ink">Delivery: </span>
         {connector.method}
         {isGhl && " — GHL sub-account OAuth connection is required at checkout."}
+        {connector.note && <p className="mt-2">{connector.note}</p>}
       </div>
     </div>
   );

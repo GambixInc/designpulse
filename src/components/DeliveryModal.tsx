@@ -2,11 +2,19 @@
 import { useState } from "react";
 import { CONNECTOR_META, PLATFORM_META } from "@/lib/format";
 
+// Platforms delivered as a file download, and the label of their button.
+const DOWNLOAD_LABELS: Record<string, string> = {
+  wix_studio: "⬇ Download template link + instructions",
+  wordpress: "⬇ Download theme + demo importer",
+  shopify: "⬇ Download theme zip + launch guide",
+  automation: "⬇ Download pack + setup guide",
+};
+
 /**
  * Platform connector delivery flows (PRD §5). Wix Studio and Webflow have no
- * install API, so those are guided experiences; Shopify simulates its OAuth
- * app-install flow; WordPress ships the bundled one-click demo importer.
- * AI & Automation packs are a plain download. GHL is handled separately by
+ * install API, so those are guided experiences; WordPress ships the bundled
+ * one-click demo importer; Shopify themes, like AI & Automation packs, are a
+ * plain download the buyer installs themselves. GHL is handled separately by
  * GhlImportFlow (snapshot push).
  */
 export default function DeliveryModal({
@@ -24,22 +32,13 @@ export default function DeliveryModal({
 }) {
   const connector = CONNECTOR_META[platform];
   const meta = PLATFORM_META[platform];
+  const downloadLabel = DOWNLOAD_LABELS[platform];
   const [busy, setBusy] = useState(false);
-  const [shopDomain, setShopDomain] = useState("");
-  const [shopifyStep, setShopifyStep] = useState<"domain" | "authorizing" | "done">("domain");
 
   const download = async () => {
     setBusy(true);
     await onDownload();
     setBusy(false);
-  };
-
-  const authorizeShopify = () => {
-    if (!shopDomain.trim()) return;
-    setShopifyStep("authorizing");
-    // Production: redirect to the per-store OAuth URL, exchange the code for an
-    // access token, then push theme files via the Themes API.
-    setTimeout(() => setShopifyStep("done"), 1400);
   };
 
   return (
@@ -75,53 +74,10 @@ export default function DeliveryModal({
           </a>
         )}
 
-        {(platform === "wix_studio" || platform === "wordpress" || platform === "automation") && (
+        {downloadLabel && (
           <button onClick={download} disabled={busy} className="btn-primary w-full">
-            {busy
-              ? "Preparing package…"
-              : platform === "wordpress"
-                ? "⬇ Download theme + demo importer"
-                : platform === "automation"
-                  ? "⬇ Download pack + setup guide"
-                  : "⬇ Download template link + instructions"}
+            {busy ? "Preparing package…" : downloadLabel}
           </button>
-        )}
-
-        {platform === "shopify" && (
-          <div>
-            {shopifyStep === "domain" && (
-              <>
-                <label className="label">Your store domain</label>
-                <div className="flex gap-2">
-                  <input
-                    className="input"
-                    placeholder="your-store.myshopify.com"
-                    value={shopDomain}
-                    onChange={(e) => setShopDomain(e.target.value)}
-                  />
-                  <button onClick={authorizeShopify} className="btn-primary whitespace-nowrap">
-                    Authorize
-                  </button>
-                </div>
-                <p className="mt-2 text-xs text-faint">
-                  Opens Shopify&apos;s OAuth consent screen (simulated in this MVP).
-                </p>
-              </>
-            )}
-            {shopifyStep === "authorizing" && (
-              <p className="text-sm text-muted text-center py-3">
-                Authorizing with {shopDomain} and pushing theme via the Themes API…
-              </p>
-            )}
-            {shopifyStep === "done" && (
-              <div className="text-center py-2">
-                <p className="text-emerald-500 font-medium">✓ Theme pushed to {shopDomain}</p>
-                <p className="mt-1 text-xs text-muted">
-                  Find it under Online Store → Themes, then preview and publish.
-                </p>
-              </div>
-            )}
-          </div>
         )}
       </div>
     </div>

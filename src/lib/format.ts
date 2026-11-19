@@ -110,10 +110,11 @@ export function businessDaysSince(iso: string): number {
 }
 
 /** Per-platform delivery connectors (PRD §5). Wix/Webflow have no install API,
- *  so those are guided flows; Shopify uses OAuth; GHL is the snapshot push. */
+ *  so those are guided flows; a Shopify theme is a zip the buyer uploads; GHL
+ *  is the snapshot push. `note` is shown before purchase, on the product page. */
 export const CONNECTOR_META: Record<
   string,
-  { method: string; cta: string; steps: string[] }
+  { method: string; cta: string; steps: string[]; note?: string }
 > = {
   wix_studio: {
     method: "Wix template link",
@@ -146,14 +147,15 @@ export const CONNECTOR_META: Record<
     ],
   },
   shopify: {
-    method: "OAuth app install",
-    cta: "Install to my store",
+    method: "Theme zip upload",
+    cta: "Download theme zip",
     steps: [
-      "Enter your myshopify.com store domain.",
-      "Authorize DesignPulse via Shopify OAuth (opens Shopify's consent screen).",
-      "We push the theme to your store's theme library via the Themes API.",
-      "Preview, then publish from your Shopify admin when you're ready.",
+      "Download the ZIP below and unzip it: it holds the theme zip, a launch guide and your license.",
+      "In your Shopify admin, go to Online Store → Themes → Add theme → Upload zip file (newer screens say Import theme) and choose the theme zip from inside the download, not the download itself.",
+      "Follow the launch guide to set up menus, pages and product details, then preview and publish.",
+      "Uploaded themes need a Shopify plan that allows them (Basic or higher; Starter cannot). Demo products and photos are not included: the theme shows your own.",
     ],
+    note: "Shopify-compatible theme you upload in your Shopify admin. It needs a Shopify plan that allows uploaded themes (Basic or higher; the Starter plan cannot install them). Demo products, photos and apps are not included. Support and updates come from DesignPulse; the theme is not made or endorsed by Shopify.",
   },
   automation: {
     method: "Instant download",
