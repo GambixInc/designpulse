@@ -20,7 +20,7 @@ export default async function HomePage() {
   ]);
 
   const stats: [string, string][] = [
-    [`${catalogCount}`, catalogCount === 1 ? "template ready to launch" : "templates ready to launch"],
+    [`${catalogCount}`, catalogCount === 1 ? "asset ready to launch" : "assets ready to launch"],
     ["100%", "human-reviewed before listing"],
     ["7-day", "defect refund window"],
     ["Stripe", "secure checkout"],
@@ -34,14 +34,14 @@ export default async function HomePage() {
           A Gambix marketplace · every listing human-reviewed
         </p>
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-ink">
-          Premium templates.
+          Premium assets.
           <br />
           <span className="text-accent">Zero quality roulette.</span>
         </h1>
         <p className="mt-5 max-w-2xl mx-auto text-muted text-lg">
-          Wix Studio templates built for local service businesses, with
-          WordPress themes, Go High Level snapshots and AI front-desk kits
-          in build.
+          Website templates, store themes, CRM snapshots and AI kits. Wix
+          Studio templates are live now, with Shopify and WordPress themes,
+          Go High Level snapshots and AI front-desk kits in build.
         </p>
         <form
           action="/marketplace"

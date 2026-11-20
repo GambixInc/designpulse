@@ -9,7 +9,7 @@ import { LEGAL, LEGAL_PAGES } from "@/lib/legal";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "DesignPulse — Premium Templates & Funnels by Gambix",
+  title: "DesignPulse — Premium Assets by Gambix",
   description:
     "Curated design templates for Wix Studio, Webflow, WordPress, Shopify, and Go High Level snapshots. Every asset human-reviewed.",
 };
